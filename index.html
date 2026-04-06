@@ -936,10 +936,21 @@ async function doSignup(){
 
   if(supaClient){
     try{
-      // Step 1: Create auth user (called ONCE)
-      const {data, error:authError} = await supaClient.auth.signUp({email, password:pw});
+      // signUp with metadata — the DB trigger reads these to create the profile
+      const {data, error:authError} = await supaClient.auth.signUp({
+        email,
+        password: pw,
+        options: {
+          data: {
+            name:       name,
+            phone:      phone,
+            role:       signupRole,
+            profession: profession,
+            platform:   platform
+          }
+        }
+      });
 
-      // Step 2: Handle auth error
       if(authError){
         errEl.textContent = authError.message;
         errEl.style.display = 'flex';
@@ -947,42 +958,41 @@ async function doSignup(){
         return;
       }
 
-      // Step 3: Get user safely
-      const authUser = data.user || (await supaClient.auth.getUser()).data.user;
+      // Also try a direct insert as backup (works if email confirm is OFF)
+      if(data.user){
+        const {error:profileError} = await supaClient.from('profiles').insert({
+          id:         data.user.id,
+          name:       name,
+          phone:      phone,
+          role:       signupRole,
+          profession: profession,
+          platform:   platform,
+          avatar:     name.charAt(0).toUpperCase()
+        });
+        if(profileError){ console.log('Trigger will handle profile insert:', profileError.message); }
+        else{ console.log('Profile saved directly.'); }
+      }
 
-      // Step 4: Insert into profiles table
-      const {error:profileError} = await supaClient.from('profiles').insert({
-        id:         authUser.id,
-        name:       name,
-        phone:      phone,
-        role:       signupRole,
-        profession: profession,
-        platform:   platform,
-        avatar:     name.charAt(0).toUpperCase()
-      });
-
-      if(profileError){ console.warn('Profile insert failed:', profileError.message); }
-      else{ console.log('Profile saved successfully'); }
-
-      // Step 5: Save to local DB
+      // Save to local DB
       const u = {
-        id:authUser.id, name, email, phone,
-        role:signupRole, profession, platform,
-        avatar:name.charAt(0).toUpperCase(), createdAt:Date.now()
+        id: data.user?.id || uid(),
+        name, email, phone,
+        role: signupRole, profession, platform,
+        avatar: name.charAt(0).toUpperCase(),
+        createdAt: Date.now()
       };
       const users = DB.users();
       if(!users.find(x=>x.id===u.id)) users.push({...u, password:''});
       DB.saveUsers(users);
       setBtn('signup-btn', false);
 
-      // Step 6: Route user
       if(!data.session){
-        showToast('Check your email to confirm your account!','info','ok');
+        showToast('Account created! Check your email to confirm.','info','ok');
         switchTab('login');
         document.getElementById('login-email').value = email;
       } else {
         loginSuccess(u);
-        showToast('Welcome, '+name.split(' ')[0]+'!','ok','ok');
+        showToast('Welcome, '+name.split(' ')[0]+'! Account ready!','ok','ok');
       }
 
     }catch(e){
@@ -994,7 +1004,7 @@ async function doSignup(){
     return;
   }
 
-  // Fallback: local DB
+  // Fallback: local DB only
   const users = DB.users();
   if(users.find(x=>x.email===email)){
     errEl.textContent='An account with this email already exists.';
@@ -1019,7 +1029,7 @@ function demoLogin(role){
   setTimeout(doLogin,100);
 }
 
-function loginSuccess(u){
+async function loginSuccess(u){
   CU=u; DB.setCurrentUser(u);
   if(u.role==='creator'){
     document.getElementById('c-nav-name').textContent=u.name.split(' ')[0];
@@ -1036,8 +1046,74 @@ function loginSuccess(u){
     showScreen('screen-freelancer');
     renderF('home');
   }
+  // Sync all data from Supabase in background
+  await syncFromSupabase(u);
 }
 
+/* ══════════════════════════
+   SYNC ALL DATA FROM SUPABASE
+══════════════════════════ */
+async function syncFromSupabase(u){
+  if(!supaClient) return;
+  try{
+    // 1. Sync all profiles
+    const {data:profiles} = await supaClient.from('profiles').select('*');
+    if(profiles && profiles.length){
+      const localUsers = DB.users();
+      profiles.forEach(p=>{
+        const exists = localUsers.find(x=>x.id===p.id);
+        const mapped = {
+          id:p.id, name:p.name||'User', email:'',
+          phone:p.phone||'', role:p.role||'creator',
+          profession:p.profession||'', platform:p.platform||'',
+          avatar:(p.name||'U').charAt(0).toUpperCase(),
+          createdAt: new Date(p.created_at).getTime()
+        };
+        if(!exists) localUsers.push(mapped);
+        else Object.assign(exists, mapped);
+      });
+      DB.saveUsers(localUsers);
+    }
+
+    // 2. Sync projects
+    const {data:projects} = await supaClient.from('projects').select('*');
+    if(projects && projects.length){
+      const mapped = projects.map(p=>({
+        id:p.id, creatorId:p.creator_id, freelancerId:p.freelancer_id||null,
+        title:p.title||'', description:p.description||'',
+        budget:p.budget||0, contentType:p.content_type||'',
+        deadline:p.deadline||'', priority:p.priority||'Normal',
+        status:p.status||'open',
+        rawShared:p.raw_shared||false, editedUploaded:p.edited_uploaded||false,
+        paid:p.paid||false, rating:p.rating||0, review:p.review||'',
+        createdAt: new Date(p.created_at).getTime()
+      }));
+      DB.saveProjects(mapped);
+    }
+
+    // 3. Sync messages for this user
+    const {data:messages} = await supaClient
+      .from('messages').select('*')
+      .or('sender_id.eq.'+u.id+',receiver_id.eq.'+u.id)
+      .order('created_at', {ascending:true});
+    if(messages && messages.length){
+      const msgMap = {};
+      messages.forEach(m=>{
+        const key=[m.sender_id, m.receiver_id].sort().join('_');
+        if(!msgMap[key]) msgMap[key]=[];
+        msgMap[key].push({from:m.sender_id, text:m.text, time:new Date(m.created_at).getTime()});
+      });
+      DB.saveMessages(msgMap);
+    }
+
+    // Re-render with fresh data
+    if(u.role==='creator') renderC('home');
+    else renderF('home');
+    console.log('Supabase sync complete');
+  }catch(e){
+    console.warn('Sync failed, using local data:', e);
+  }
+}
 function logout(){
   showModal('Log Out','Are you sure you want to log out?',async ()=>{
     if(supaClient){try{await supaClient.auth.signOut();}catch(e){}}
@@ -1184,12 +1260,27 @@ function wfContent(){
   return '';
 }
 
-function completePayment(){
+async function completePayment(){
   const title=document.getElementById('wf-title')?.value||'New Project';
-  const projs=DB.projects();
-  projs.push({id:pid(),creatorId:CU.id,title,description:'',budget:parseInt(document.getElementById('wf-budget')?.value||2500),contentType:selContent,deadline:'',priority:'Normal',freelancerId:selFreelancerId,status:'completed',rawShared:true,editedUploaded:true,paid:true,rating:0,review:'',createdAt:Date.now()});
-  DB.saveProjects(projs);
-  showToast('Payment successful! Project completed 🎉','ok','🎉');
+  const budget=parseInt(document.getElementById('wf-budget')?.value||2500);
+  const newP={
+    id:pid(),creatorId:CU.id,title,description:'',budget,
+    contentType:selContent,deadline:'',priority:'Normal',
+    freelancerId:selFreelancerId,status:'completed',
+    rawShared:true,editedUploaded:true,paid:true,rating:0,review:'',createdAt:Date.now()
+  };
+  const projs=DB.projects(); projs.push(newP); DB.saveProjects(projs);
+  if(supaClient){
+    const {error}=await supaClient.from('projects').insert({
+      id:newP.id, creator_id:CU.id, freelancer_id:selFreelancerId||null,
+      title:title, description:'', budget:budget, content_type:selContent||'',
+      deadline:null, priority:'Normal', status:'completed',
+      raw_shared:true, edited_uploaded:true, paid:true
+    });
+    if(error) console.warn('Project Supabase save error:',error.message);
+    else console.log('Project saved to Supabase');
+  }
+  showToast('Payment successful! Project completed!','ok','ok');
   setTimeout(()=>renderC('home'),500);
 }
 function submitReview(){showToast('Review submitted! Thank you ⭐','ok','⭐');}
@@ -1371,10 +1462,17 @@ function fBrowse(){
     </div></div>`;}).join(''):'<div class="alert alert-i">No open projects right now. Check back soon!</div>'}`;
 }
 function acceptProject(id){
-  showModal('Accept Project','Accept this project and start working?',()=>{
+  showModal('Accept Project','Accept this project and start working?',async ()=>{
     const projs=DB.projects(),p=projs.find(x=>x.id===id);
     if(p){p.freelancerId=CU.id;p.status='ongoing';DB.saveProjects(projs);}
-    showToast('Project accepted! Chat with the creator to begin.','ok','🎉');renderF('ongoing');
+    if(supaClient){
+      const {error}=await supaClient.from('projects')
+        .update({freelancer_id:CU.id, status:'ongoing'}).eq('id',id);
+      if(error) console.warn('Accept project Supabase error:',error.message);
+      else console.log('Project accepted in Supabase');
+    }
+    showToast('Project accepted! Chat with the creator to begin.','ok','ok');
+    renderF('ongoing');
   });
 }
 function viewProject(id){
@@ -1511,24 +1609,26 @@ function switchChat(myId,otherId){
     const el=document.getElementById('chat-msgs-el');if(el)el.scrollTop=el.scrollHeight;
   }
 }
-function sendMsg(myId,otherId){
+async function sendMsg(myId,otherId){
   const inp=document.getElementById('chat-inp-el');
   if(!inp||!inp.value.trim())return;
-  const text=inp.value.trim();inp.value='';
+  const text=inp.value.trim(); inp.value='';
   const key=[myId,otherId].sort().join('_');
   const allMsgs=DB.messages();
-  if(!allMsgs[key])allMsgs[key]=[];
+  if(!allMsgs[key]) allMsgs[key]=[];
   allMsgs[key].push({from:myId,text,time:Date.now()});
   DB.saveMessages(allMsgs);
   const el=document.getElementById('chat-msgs-el');
   if(el){el.innerHTML=renderMsgs(allMsgs[key],myId);el.scrollTop=el.scrollHeight;}
-  setTimeout(()=>{
-    const replies=['Got it! I\'ll get started 🚀','Sure, sounds good!','Thanks for the update!','I\'ll have it ready by the deadline.','Can you share more details?'];
-    const reply=replies[Math.floor(Math.random()*replies.length)];
-    const msgs2=DB.messages();
-    if(msgs2[key]){msgs2[key].push({from:otherId,text:reply,time:Date.now()});DB.saveMessages(msgs2);const el2=document.getElementById('chat-msgs-el');if(el2){el2.innerHTML=renderMsgs(msgs2[key],myId);el2.scrollTop=el2.scrollHeight;}}
-  },1500);
+  // Save to Supabase
+  if(supaClient){
+    const {error}=await supaClient.from('messages').insert({
+      sender_id:myId, receiver_id:otherId, text:text
+    });
+    if(error) console.warn('Message Supabase save error:',error.message);
+  }
 }
+
 
 /* ══════════════════════════
    HELPERS
