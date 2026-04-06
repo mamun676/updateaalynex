@@ -693,7 +693,7 @@ h1 em{font-style:normal;background:linear-gradient(135deg,var(--accent),#ff8c42)
    SUPABASE INIT
 ══════════════════════════ */
 const SUPABASE_URL = "https://sfzbrygqpodjinhpagaz.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmemJyeWdxcG9kamluaHBhZ2F6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMjIwNzksImV4cCI6MjA5MDg5ODA3OX0.9SVdvdTl6Svy7fUe47s6IKHruapgE3pvlxGmHI5brJA";
+const SUPABASE_KEY = "sb_publishable_h1rmGWdbBlMWPhkKugtOQw_6tP5ArtI";
 
 let supaClient;
 try {
@@ -863,7 +863,7 @@ async function doLogin(){
   if(supaClient){
     try{
       const {data,error}=await supaClient.auth.signInWithPassword({email,password:pw});
-     if(!error){
+      if(!error && data.user){
         /* Fetch or create profile */
         const {data:profile,error:pErr}=await supaClient.from('profiles').select('*').eq('id',data.user.id).single();
         if(!pErr && profile){
@@ -913,84 +913,104 @@ async function doLogin(){
 }
 
 async function doSignup(){
-  const name=document.getElementById('su-name').value.trim();
-  const phone=document.getElementById('su-phone').value.trim();
-  const email=document.getElementById('su-email').value.trim();
-  const pw=document.getElementById('su-pw').value;
-  const profession=document.getElementById('su-profession').value;
-  const platform=document.getElementById('su-platform')?.value||'';
-  const errEl=document.getElementById('signup-err');
-  errEl.style.display='none';
+  const name       = document.getElementById('su-name').value.trim();
+  const phone      = document.getElementById('su-phone').value.trim();
+  const email      = document.getElementById('su-email').value.trim();
+  const pw         = document.getElementById('su-pw').value;
+  const profession = document.getElementById('su-profession').value;
+  const platform   = document.getElementById('su-platform')?.value || '';
+  const errEl      = document.getElementById('signup-err');
 
-  if(!name||!email||!pw){errEl.textContent='Please fill in all required fields.';errEl.style.display='flex';return;}
-  if(pw.length<6){errEl.textContent='Password must be at least 6 characters.';errEl.style.display='flex';return;}
+  errEl.style.display = 'none';
 
-  setBtn('signup-btn',true,'Creating account…');
+  if(!name||!email||!pw){
+    errEl.textContent='Please fill in all required fields.';
+    errEl.style.display='flex'; return;
+  }
+  if(pw.length<6){
+    errEl.textContent='Password must be at least 6 characters.';
+    errEl.style.display='flex'; return;
+  }
 
-  /* Try Supabase */
+  setBtn('signup-btn', true, 'Creating account...');
+
   if(supaClient){
     try{
-      const {data,error}=await supaClient.auth.signUp({email,password:pw});
-      
-      
-        /* Insert profile */
-        
+      // Step 1: Create auth user (called ONCE)
+      const {data, error:authError} = await supaClient.auth.signUp({email, password:pw});
 
-
-if (!error) {
-
-  const user = data.user || (await supaClient.auth.getUser()).data.user;
-
-  const { data: profileData, error: profileError } =
-    await supaClient.from('profiles').insert({
-      id: user.id,
-      name,
-      phone,
-      role: signupRole,
-      profession,
-      platform,
-      avatar: name.charAt(0).toUpperCase()
-    });
-
-  console.log("PROFILE ERROR:", profileError);
-}
-
-console.log("PROFILE ERROR:", profileError);
-        const u={id:data.user.id,name,email,phone,role:signupRole,profession,platform,avatar:name.charAt(0).toUpperCase(),createdAt:Date.now()};
-        /* Also save to local DB so demo data links up */
-        const users=DB.users();
-        if(!users.find(x=>x.id===u.id)) users.push({...u,password:''});
-        DB.saveUsers(users);
-        setBtn('signup-btn',false);
-        /* Check if email confirmation is required */
-        if(!data.session){
-          showToast('Account created! Check your email to confirm.','info','📧');
-          switchTab('login');
-          document.getElementById('login-email').value=email;
-        } else {
-          loginSuccess(u);
-          showToast('Account created! Welcome, '+name.split(' ')[0]+'! 🎉','ok','🎉');
-        }
+      // Step 2: Handle auth error
+      if(authError){
+        errEl.textContent = authError.message;
+        errEl.style.display = 'flex';
+        setBtn('signup-btn', false);
         return;
-      } else if(error){
-        console.warn('Supabase signup error:',error.message);
       }
-    }catch(e){console.warn('Supabase signup exception:',e);}
+
+      // Step 3: Get user safely
+      const authUser = data.user || (await supaClient.auth.getUser()).data.user;
+
+      // Step 4: Insert into profiles table
+      const {error:profileError} = await supaClient.from('profiles').insert({
+        id:         authUser.id,
+        name:       name,
+        phone:      phone,
+        role:       signupRole,
+        profession: profession,
+        platform:   platform,
+        avatar:     name.charAt(0).toUpperCase()
+      });
+
+      if(profileError){ console.warn('Profile insert failed:', profileError.message); }
+      else{ console.log('Profile saved successfully'); }
+
+      // Step 5: Save to local DB
+      const u = {
+        id:authUser.id, name, email, phone,
+        role:signupRole, profession, platform,
+        avatar:name.charAt(0).toUpperCase(), createdAt:Date.now()
+      };
+      const users = DB.users();
+      if(!users.find(x=>x.id===u.id)) users.push({...u, password:''});
+      DB.saveUsers(users);
+      setBtn('signup-btn', false);
+
+      // Step 6: Route user
+      if(!data.session){
+        showToast('Check your email to confirm your account!','info','ok');
+        switchTab('login');
+        document.getElementById('login-email').value = email;
+      } else {
+        loginSuccess(u);
+        showToast('Welcome, '+name.split(' ')[0]+'!','ok','ok');
+      }
+
+    }catch(e){
+      console.error('Signup exception:', e);
+      errEl.textContent = 'Something went wrong. Please try again.';
+      errEl.style.display = 'flex';
+      setBtn('signup-btn', false);
+    }
+    return;
   }
 
-  /* Fallback: local DB signup */
-  const users=DB.users();
+  // Fallback: local DB
+  const users = DB.users();
   if(users.find(x=>x.email===email)){
-    setBtn('signup-btn',false);
-    errEl.textContent='An account with this email already exists.';errEl.style.display='flex';return;
+    errEl.textContent='An account with this email already exists.';
+    errEl.style.display='flex';
+    setBtn('signup-btn', false); return;
   }
-  const newU={id:uid(),name,email,phone,password:pw,role:signupRole,profession,platform,avatar:name.charAt(0).toUpperCase(),createdAt:Date.now()};
-  users.push(newU);DB.saveUsers(users);
-  setBtn('signup-btn',false);
+  const newU = {
+    id:uid(), name, email, phone, password:pw,
+    role:signupRole, profession, platform,
+    avatar:name.charAt(0).toUpperCase(), createdAt:Date.now()
+  };
+  users.push(newU); DB.saveUsers(users);
+  setBtn('signup-btn', false);
   loginSuccess(newU);
-  showToast('Account created! Welcome, '+name.split(' ')[0]+'! 🎉','ok','🎉');
+  showToast('Account created! Welcome, '+name.split(' ')[0]+'!','ok','ok');
 }
-
 function demoLogin(role){
   const email=role==='creator'?'creator@demo.com':'freelancer@demo.com';
   document.getElementById('login-email').value=email;
@@ -1284,7 +1304,7 @@ function saveProfile(){
   document.getElementById('c-sb-name').textContent=name;
   document.getElementById('c-sb-avatar').textContent=name.charAt(0).toUpperCase();
   /* Sync to Supabase */
-  if(supabase&&CU.id&&!CU.id.startsWith('u1')&&!CU.id.startsWith('u2')){
+  if(supaClient&&CU.id&&!CU.id.startsWith('u1')&&!CU.id.startsWith('u2')){
     supaClient.from('profiles').update({name,phone,platform}).eq('id',CU.id).then(()=>{});
   }
   showToast('Profile updated ✓','ok','✓');
