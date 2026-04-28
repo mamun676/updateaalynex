@@ -4252,11 +4252,15 @@ function triggerApproveAndPay(projectId) {
         showToast('Project not found.', 'err', '');
         return;
     }
-    showModal('Proceed to Payment', 'Are you sure you want to approve this video and proceed to the payment screen?', () => {
-        // ✅ FIX: Creator ke local cache mein editedUploaded = true karo
+    showModal('Proceed to Payment', 'Are you sure you want to approve this video and proceed to the payment screen?', async () => {
         const projs = DB.projects();
         const p = projs.find(x => x.id === projectId);
         if (p) { p.editedUploaded = true; DB.saveProjects(projs); }
+
+        // ✅ DB mein bhi update karo taaki sync ke baad bhi rahe
+        if (supaClient) {
+            await supaClient.from('projects').update({ edited_uploaded: true }).eq('id', projectId);
+        }
 
         activeManageProjectId = projectId;
         wfStep = 7;
@@ -4264,7 +4268,6 @@ function triggerApproveAndPay(projectId) {
     });
     document.getElementById('modal-confirm').textContent = 'Proceed';
 }
-
 /* ══════════════════════════════════════════════
    SHARED HELPERS
 ══════════════════════════════════════════════ */
