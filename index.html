@@ -2257,10 +2257,9 @@ function manageProject(pid) {
   
   if (p.status === 'open') { showToast('Waiting for freelancers to accept...', 'info'); return; }
   
-  if (p.status === 'ongoing' && !p.editedUploaded) wfStep = 5; // Chat (raw is auto-shared)
-  else if (p.status === 'ongoing' && p.editedUploaded) wfStep = 6; // Review
-  else if (p.status === 'completed' && !p.paid) wfStep = 7; // Pay
-  else wfStep = 7; 
+ if (p.status === 'ongoing' && !p.editedUploaded) wfStep = 5;
+else if (p.status === 'ongoing' && p.editedUploaded && !p.paid) wfStep = 7;
+else wfStep = 7;
   
   cPage('new', document.querySelector('[data-page="new"]'));
 }
