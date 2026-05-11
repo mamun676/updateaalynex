@@ -2648,66 +2648,86 @@ function cHome() {
   const done   = projs.filter(p => p.status === 'completed').length;
   const recent = projs.slice(-4).reverse();
 
-  // ── Freelancer preview row ──
-  const allF = DB.users().filter(u => u.role === 'freelancer');
-  const allP = DB.projects();
-  const getFStats = (fid) => {
-    const comp  = allP.filter(p => p.freelancerId === fid && p.status === 'completed');
-    const rated = comp.filter(p => p.rating && p.rating > 0);
-    const avg   = rated.length > 0 ? rated.reduce((s,p)=>s+p.rating,0)/rated.length : 0;
-    return { completedCount: comp.length, avgRating: avg };
-  };
-  const sortedF = [...allF].sort((a,b) => {
-    const sa = getFStats(a.id), sb = getFStats(b.id);
-    if (sb.avgRating !== sa.avgRating) return sb.avgRating - sa.avgRating;
-    return sb.completedCount - sa.completedCount;
-  });
+  // ── Freelancer preview row (Top 5-6, last 7 days) ──
+const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+const allF = DB.users().filter(u => u.role === 'freelancer');
+const allP = DB.projects();
 
-  const fRow = sortedF.length > 0 ? `
-  <div style="margin-bottom:22px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+const getFStats = (fid) => {
+  const allComp   = allP.filter(p => p.freelancerId === fid && p.status === 'completed');
+  const recentComp= allComp.filter(p => p.createdAt >= sevenDaysAgo);
+  const rated     = allComp.filter(p => p.rating && p.rating > 0);
+  const recentRated= recentComp.filter(p => p.rating && p.rating > 0);
+  const avg       = rated.length > 0 ? rated.reduce((s,p)=>s+p.rating,0)/rated.length : 0;
+  return {
+    completedCount: allComp.length,
+    recentCount:    recentComp.length,
+    recentRated:    recentRated.length,
+    avgRating:      avg
+  };
+};
+
+const sortedF = [...allF]
+  .sort((a, b) => {
+    const sa = getFStats(a.id), sb = getFStats(b.id);
+    const scoreA = (sa.recentRated * 2) + sa.recentCount + (sa.avgRating * 0.5);
+    const scoreB = (sb.recentRated * 2) + sb.recentCount + (sb.avgRating * 0.5);
+    return scoreB - scoreA;
+  })
+  .slice(0, 6);
+
+const fRow = sortedF.length > 0 ? `
+<div style="margin-bottom:24px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div>
       <span class="section-title" style="margin-bottom:0;">Top Freelancers</span>
-      <button onclick="cPage('browse',document.querySelector('[data-page=browse]'))" class="btn btn-ghost btn-xs">See All →</button>
+      <span style="font-size:.7rem;color:var(--text-3);margin-left:8px;background:var(--accent-soft);color:var(--accent);padding:2px 8px;border-radius:99px;font-weight:600;">This Week</span>
     </div>
-    <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;">
+    <button onclick="cPage('browse',document.querySelector('[data-page=browse]'))" class="btn btn-ghost btn-xs" style="font-size:.75rem;">See All →</button>
+  </div>
+  <div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:16px 14px;box-shadow:var(--shadow-sm);">
+    <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;align-items:stretch;">
       ${sortedF.map(f => {
         const st = getFStats(f.id);
-        const skills = (f.skills||[]).slice(0,3);
+        const skills = (f.skills||[]).slice(0,2);
         const stars = st.avgRating > 0
           ? Array.from({length:5},(_,i)=>`<span style="color:${i<Math.round(st.avgRating)?'#D97706':'rgba(0,0,0,0.13)'}">&#9733;</span>`).join('')
-          : `<span style="font-size:.6rem;color:var(--text-3);">No ratings yet</span>`;
+          : `<span style="font-size:.6rem;color:var(--text-3);">New</span>`;
         const photo = (f.photo_url||f.photourl)
-          ? `<img src="${f.photo_url||f.photourl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
-          : `<span style="font-family:'Outfit',sans-serif;font-weight:700;font-size:1.05rem;color:#fff;">${(f.avatar||f.name.charAt(0)).toUpperCase()}</span>`;
+          ? `<img src="${f.photo_url||f.photourl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none'">`
+          : `<span style="font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;color:#fff;">${(f.avatar||f.name.charAt(0)).toUpperCase()}</span>`;
         return `
-        <div style="min-width:155px;max-width:155px;background:var(--surface);border:1.5px solid var(--glass-border);border-radius:var(--radius);padding:14px 11px 12px;text-align:center;flex-shrink:0;box-shadow:var(--shadow-xs);transition:border-color .2s,box-shadow .2s;" onmouseover="this.style.borderColor='rgba(224,92,42,.25)';this.style.boxShadow='0 6px 20px rgba(224,92,42,.1)'" onmouseout="this.style.borderColor='var(--glass-border)';this.style.boxShadow='var(--shadow-xs)'">
-          <div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;margin:0 auto 8px;overflow:hidden;border:2px solid var(--glass-border-strong);flex-shrink:0;">
+        <div style="min-width:140px;max-width:140px;display:flex;flex-direction:column;align-items:center;text-align:center;padding:14px 10px 12px;border-radius:12px;background:var(--bg2);border:1px solid var(--glass-border);flex-shrink:0;gap:5px;transition:border-color .2s,box-shadow .2s;"
+          onmouseover="this.style.borderColor='rgba(224,92,42,.3)';this.style.boxShadow='0 4px 14px rgba(224,92,42,.1)'"
+          onmouseout="this.style.borderColor='var(--glass-border)';this.style.boxShadow='none'">
+          <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;overflow:hidden;border:2px solid var(--glass-border-strong);flex-shrink:0;margin-bottom:2px;">
             ${photo}
           </div>
-          <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:.82rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;">${f.name}</div>
-          <div style="font-size:.68rem;font-weight:600;color:var(--accent2);margin-bottom:4px;">${f.profession||'Video Editor'}</div>
-          <div style="font-size:.68rem;margin-bottom:2px;">${stars}</div>
-          <div style="font-size:.62rem;color:var(--text-3);margin-bottom:7px;">${st.avgRating>0?st.avgRating.toFixed(1):'New'} &middot; ${st.completedCount} Projects</div>
-          <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:3px;margin-bottom:9px;min-height:16px;">
-            ${skills.map(s=>`<span style="background:var(--accent2-soft);color:var(--accent2);border:1px solid rgba(124,58,237,.18);border-radius:99px;font-size:.57rem;font-weight:600;padding:2px 6px;">${s}</span>`).join('')}
+          <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:.78rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">${f.name}</div>
+          <div style="font-size:.65rem;font-weight:600;color:var(--accent2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">${f.profession||'Video Editor'}</div>
+          <div style="font-size:.65rem;line-height:1;">${stars}</div>
+          <div style="font-size:.6rem;color:var(--text-3);">${st.avgRating>0?st.avgRating.toFixed(1):'New'} · ${st.completedCount} done</div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:3px;min-height:14px;">
+            ${skills.map(s=>`<span style="background:var(--accent2-soft);color:var(--accent2);border-radius:99px;font-size:.55rem;font-weight:600;padding:2px 6px;border:1px solid rgba(124,58,237,.15);">${s}</span>`).join('')}
           </div>
-          <div style="display:flex;flex-direction:column;gap:5px;">
-            <button class="btn btn-outline-f btn-xs full-btn" style="font-size:.7rem;padding:5px 8px;" onclick="event.stopPropagation();viewFreelancerPortfolio('${f.id}')">View Portfolio</button>
-            <button class="btn btn-primary btn-xs full-btn" style="font-size:.7rem;padding:5px 8px;" onclick="event.stopPropagation();openSendRequestModal('${f.id}','${f.name.replace(/'/g,"\\'")}')">Send Request →</button>
+          <div style="display:flex;flex-direction:column;gap:5px;width:100%;margin-top:4px;">
+            <button class="btn btn-outline-f btn-xs full-btn" style="font-size:.65rem;padding:5px 6px;" onclick="event.stopPropagation();viewFreelancerPortfolio('${f.id}')">Portfolio</button>
+            <button class="btn btn-primary btn-xs full-btn" style="font-size:.65rem;padding:5px 6px;" onclick="event.stopPropagation();openSendRequestModal('${f.id}','${f.name.replace(/'/g,"\\'")}')">Request →</button>
           </div>
         </div>`;
       }).join('')}
-      <!-- Arrow button → Browse Freelancers -->
-      <div style="min-width:48px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding-right:4px;">
+      <!-- Arrow → Browse All -->
+      <div style="min-width:52px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
         <button onclick="cPage('browse',document.querySelector('[data-page=browse]'))"
-          style="width:42px;height:42px;border-radius:50%;background:var(--surface);border:1.5px solid rgba(224,92,42,.3);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow-sm);transition:all .2s;"
-          onmouseover="this.style.background='var(--accent)';this.style.borderColor='var(--accent)';"
-          onmouseout="this.style.background='var(--surface)';this.style.borderColor='rgba(224,92,42,.3)';">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;"><polyline points="9 18 15 12 9 6"/></svg>
+          style="width:40px;height:40px;border-radius:50%;background:var(--surface);border:1.5px solid rgba(224,92,42,.3);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow-sm);transition:all .2s;flex-shrink:0;"
+          onmouseover="this.style.background='var(--accent)';this.querySelector('svg').style.stroke='#fff'"
+          onmouseout="this.style.background='var(--surface)';this.querySelector('svg').style.stroke='var(--accent)'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;transition:stroke .2s;"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>
     </div>
-  </div>` : '';
+  </div>
+</div>` : '';
 
   return `
   <div class="page-head"><h2>Dashboard</h2><p>Overview of your creator activity</p></div>
