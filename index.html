@@ -2732,15 +2732,27 @@ const fRow = sortedF.length > 0 ? `
   return `
   <div class="page-head"><h2>Dashboard</h2><p>Overview of your creator activity</p></div>
   <div class="cards-grid">
-    <div class="mc a"><div class="label">Active Projects</div><div class="value">${active}</div><div class="sub">Currently ongoing</div></div>
-    <div class="mc g"><div class="label">Completed</div><div class="value">${done}</div><div class="sub">All time</div></div>
-    <div class="mc b"><div class="label">Total Projects</div><div class="value">${projs.length}</div><div class="sub">Ever posted</div></div>
-    <div class="mc p" style="cursor:pointer;" onclick="cPage('browse',document.querySelector('[data-page=browse]'))">
-      <div class="label">Browse Freelancers</div>
-      <div class="value" style="font-size:1.2rem;">🔍</div>
-      <div class="sub">Find & hire editors</div>
+    <div class="mc a" style="cursor:pointer;" title="View ongoing projects" onclick="cPage('projects', document.querySelector('[data-page=projects]')); setTimeout(()=>filterProjects('ongoing'), 150)">
+      <div class="label">Active Projects</div><div class="value">${active}</div><div class="sub">Currently ongoing</div>
     </div>
-  </div>
+    <div class="mc g" style="cursor:pointer;" title="View completed projects" onclick="cPage('projects', document.querySelector('[data-page=projects]')); setTimeout(()=>filterProjects('completed'), 150)">
+      <div class="label">Completed</div><div class="value">${done}</div><div class="sub">All time</div>
+    </div>
+    <div class="mc b" style="cursor:pointer;" title="View all projects" onclick="cPage('projects', document.querySelector('[data-page=projects]')); setTimeout(()=>filterProjects('all'), 150)">
+      <div class="label">Total Projects</div><div class="value">${projs.length}</div><div class="sub">Ever posted</div>
+    </div>
+    <div class="mc p" style="cursor:pointer;background:linear-gradient(135deg,rgba(124,58,237,.1),rgba(29,78,216,.08));border:1.5px solid rgba(124,58,237,.25);position:relative;overflow:hidden;" onclick="cPage('browse',document.querySelector('[data-page=browse]'))">
+      <div style="position:absolute;top:-18px;right:-18px;width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(29,78,216,.1));pointer-events:none;"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--accent2),var(--blue));display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(124,58,237,.3);">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div class="label" style="margin:0;color:var(--accent2);font-weight:600;">Browse Editors</div>
+      </div>
+      <div class="value" style="font-size:1rem;font-family:'DM Sans',sans-serif;font-weight:500;color:var(--text);">Find &amp; Hire</div>
+      <div class="sub" style="color:var(--accent2);font-weight:500;margin-top:2px;">Top talent available →</div>
+    </div>
+</div>
   ${fRow}
   <div class="section-title">Recent Projects</div>
   <div class="project-list">
@@ -3193,7 +3205,7 @@ async function completePayment() {
 
           await sendMsg(CU.id, p.freelancerId, null, null,
             `✅ Payment of ₹${fmt(total)} done! Project completed. Thanks for the great work!`);
-
+          sendPaymentDoneEmail(p.freelancerId, p.title, total, p.rating || 0);
           showToast('✅ Payment Successful! Now rate your editor.', 'ok', '');
           activeManageProjectId = p.id;
           wfStep = 7;
@@ -5682,6 +5694,33 @@ async function sendFinalUploadNotificationEmail(creatorId, projectTitle) {
     );
   } catch(e) {
     console.warn('Final upload email failed:', e);
+  }
+}
+async function sendPaymentDoneEmail(freelancerId, projectTitle, amount, rating) {
+  if (!supaClient || !freelancerId) return;
+  try {
+    const { data: { session } } = await supaClient.auth.getSession();
+    if (!session) return;
+    await fetch(
+      'https://sfzbrygqpodjinhpagaz.supabase.co/functions/v1/send-email',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          type: 'payment_done',
+          freelancerId,
+          projectTitle,
+          amount,
+          rating: rating || 0,
+          creatorName: CU.name
+        })
+      }
+    );
+  } catch(e) {
+    console.warn('Payment done email failed:', e);
   }
 }
 </script>
