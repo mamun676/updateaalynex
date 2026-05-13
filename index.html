@@ -4009,6 +4009,7 @@ if (progFill) progFill.style.width = '80%';
     await sendMsg(CU.id, proj.creatorId, fileUrl, file.name, msgText);
 
     if (progFill) progFill.style.width = '100%';
+    sendFinalUploadNotificationEmail(proj.creatorId, proj.title);
     showToast('Final video uploaded and sent to creator!', 'ok', '');
     fPage('upload', document.querySelector('[data-page="upload"]'));
   } catch(err) {
@@ -5656,6 +5657,31 @@ async function sendAcceptanceNotificationEmail(creatorId, projectTitle, budget, 
     );
   } catch(e) {
     console.warn('Acceptance email failed:', e);
+  }
+}
+async function sendFinalUploadNotificationEmail(creatorId, projectTitle) {
+  if (!supaClient || !creatorId) return;
+  try {
+    const { data: { session } } = await supaClient.auth.getSession();
+    if (!session) return;
+    await fetch(
+      'https://sfzbrygqpodjinhpagaz.supabase.co/functions/v1/send-email',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          type: 'final_uploaded',
+          creatorId,
+          projectTitle,
+          freelancerName: CU.name
+        })
+      }
+    );
+  } catch(e) {
+    console.warn('Final upload email failed:', e);
   }
 }
 </script>
