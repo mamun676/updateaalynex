@@ -3804,13 +3804,19 @@ async function acceptProject(id) {
         }
         showToast(`Accepted! ${atts.length} raw file(s) sent to chat.`, 'ok', '🎉');
       } else {
-        showToast('Project accepted! Chat activated.', 'ok', '');
+        sendAcceptanceNotificationEmail(creatorId, p?.title, p?.budget, p?.deadline, p?.contentType);
+showToast('Project accepted! Chat activated.', 'ok', '');
+        
       }
     } catch (e) {
-      showToast('Project accepted! Chat activated.', 'ok', '');
+      sendAcceptanceNotificationEmail(creatorId, p?.title, p?.budget, p?.deadline, p?.contentType);
+showToast('Project accepted! Chat activated.', 'ok', '');
+     
     }
   } else {
-    showToast('Project accepted! Chat activated.', 'ok', '');
+    sendAcceptanceNotificationEmail(creatorId, p?.title, p?.budget, p?.deadline, p?.contentType);
+showToast('Project accepted! Chat activated.', 'ok', '');
+    
   }
 
   renderF('ongoing');
@@ -5622,6 +5628,34 @@ async function sendProjectNotificationEmail(freelancerId, projectTitle, budget, 
     );
   } catch(e) {
     console.warn('Email failed:', e);
+  }
+}
+async function sendAcceptanceNotificationEmail(creatorId, projectTitle, budget, deadline, contentType) {
+  if (!supaClient || !creatorId) return;
+  try {
+    const { data: { session } } = await supaClient.auth.getSession();
+    if (!session) return;
+    await fetch(
+      'https://sfzbrygqpodjinhpagaz.supabase.co/functions/v1/send-email',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          type: 'project_accepted',
+          creatorId,
+          projectTitle,
+          budget,
+          deadline,
+          contentType,
+          freelancerName: CU.name
+        })
+      }
+    );
+  } catch(e) {
+    console.warn('Acceptance email failed:', e);
   }
 }
 </script>
