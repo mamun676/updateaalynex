@@ -1451,6 +1451,22 @@ h1 em{
   </div>
 
 </div>
+<div id="screen-public-profile" class="screen">
+  <nav>
+    <div class="logo">
+      <img src="aalynex-logo.png" class="logo-img" draggable="false" alt="Logo"/>
+      <span class="logo-text" draggable="false">Aalynex</span>
+    </div>
+    <div class="nav-right">
+      <button class="btn btn-primary btn-sm" onclick="showScreen('screen-landing')">Join Aalynex →</button>
+    </div>
+  </nav>
+  <div class="auth-wrap" style="align-items:flex-start;padding-top:40px;">
+    <div id="pp-content" style="width:100%;max-width:680px;">
+      <div style="text-align:center;padding:60px 20px;color:var(--text-3);">Loading profile…</div>
+    </div>
+  </div>
+</div>
 
 <div id="screen-auth" class="screen">
   <nav>
@@ -1683,7 +1699,9 @@ h1 em{
 ══════════════════════════════════════════════ */
 const SUPABASE_URL = "https://sfzbrygqpodjinhpagaz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_h1rmGWdbBlMWPhkKugtOQw_6tP5ArtI";
-
+// Public profile link detect karo
+const __profileParam = new URLSearchParams(location.search).get('profile');
+window.isPublicProfileView = !!__profileParam;
 // ═══════════════════════════════════════
 // AWS S3 HELPERS
 // ═══════════════════════════════════════
@@ -2090,10 +2108,11 @@ async function doLogin() {
       avatar: profile.name || email.charAt(0).toUpperCase(),
       createdAt: new Date(profile.created_at).getTime(),
       skills: profile.skills || [],
-      portfoliolinks: profile.portfoliolinks || [],
-      resumeurl: profile.resumeurl || '',
-      photourl: profile.photourl || '',
-      experience: profile.experience || [],
+portfolio_links: profile.portfolio_links || {},
+resume_url: profile.resume_url || '',
+photo_url: profile.photo_url || '',
+experience: profile.experience || [],
+
 // NEW: Feature 1
 upiId: profile.upi_id || '',
 bankAccountName: profile.bank_account_name || '',
@@ -5723,6 +5742,220 @@ async function sendPaymentDoneEmail(freelancerId, projectTitle, amount, rating) 
     console.warn('Payment done email failed:', e);
   }
 }
+/* ════════════ PUBLIC FREELANCER PROFILE ════════════ */
+
+// 1. On load, check the URL for a shared profile link
+function checkPublicProfileRoute() {
+  const params = new URLSearchParams(window.location.search);
+  const profileId = params.get('profile');
+  if (profileId) {
+    openPublicProfile(profileId);
+    return true;
+  }
+  return false;
+}
+
+// 2. Load + show a freelancer's public profile (works logged-out)
+async function openPublicProfile(id) {
+  showScreen('screen-public-profile');
+  const box = document.getElementById('pp-content');
+
+  if (!supaClient) {
+    box.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text-3);">Unable to connect.</div>`;
+    return;
+  }
+
+  try {
+    const [{ data: p }, { data: stats }] = await Promise.all([
+      supaClient.from('public_freelancer_profiles').select('*').eq('id', id).single(),
+      supaClient.from('public_freelancer_stats').select('*').eq('freelancer_id', id).maybeSingle()
+    ]);
+
+    if (!p) {
+      box.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text-3);">
+        <h2 style="font-family:'Outfit';margin-bottom:8px;">Profile not found</h2>
+        <p>This freelancer profile doesn’t exist or is no longer available.</p>
+        <button class="btn btn-primary" style="margin-top:18px;" onclick="showScreen('screen-landing')">Go to Aalynex</button>
+      </div>`;
+      return;
+    }
+    renderPublicProfile(p, stats || {});
+  } catch (e) {
+    console.warn('Public profile load failed', e);
+    box.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text-3);">Couldn’t load this profile.</div>`;
+  }
+}
+
+// 3. Render it
+function renderPublicProfile(p, stats) {
+  const box = document.getElementById('pp-content');
+  const initial = (p.name || 'U').charAt(0).toUpperCase();
+
+  // Anon visitors can't fetch private S3 photos — only use direct http(s) URLs,
+  // otherwise fall back to the initial avatar.
+  const photo = (p.photo_url && p.photo_url.startsWith('http')) ? p.photo_url : null;
+
+  const avatar = photo
+    ? `<img src="${photo}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:2px solid var(--glass-border-strong);"/>`
+    : `<div style="width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+         font-family:'Outfit';font-size:2rem;font-weight:700;color:#fff;margin:0 auto;
+         background:linear-gradient(135deg,var(--freelancer),#6D28D9);">${initial}</div>`;
+
+  const rating = stats.avg_rating
+    ? `★ ${stats.avg_rating} <span style="color:var(--text-3);font-weight:400;">(${stats.rating_count} reviews)</span>`
+    : `<span style="color:var(--text-3);">No reviews yet</span>`;
+
+  // skills / portfolio_links / experience are flexible — handle array or object
+  const skills = (Array.isArray(p.skills) ? p.skills : [])
+    .map(s => `<span class="tag pu">${escapeHtml(s)}</span>`).join(' ') || '<span style="color:var(--text-3);">—</span>';
+
+  const links = p.portfolio_links && typeof p.portfolio_links === 'object'
+    ? Object.entries(p.portfolio_links).filter(([,v]) => v)
+        .map(([k,v]) => `<a href="${escapeHtml(v)}" target="_blank" class="social-btn" style="margin:4px;">${escapeHtml(k)}</a>`).join('')
+    : '';
+
+  const exp = (Array.isArray(p.experience) ? p.experience : [])
+    .map(x => `<div class="info-row"><span>${escapeHtml(x.role || x.title || 'Experience')}</span>
+               <span class="key">${escapeHtml(x.company || x.years || '')}</span></div>`).join('')
+    || '<p style="color:var(--text-3);font-size:.85rem;">No experience added yet.</p>';
+
+  const shareUrl = `${location.origin}${location.pathname}?profile=${p.id}`;
+
+  box.innerHTML = `
+    <div class="det-card" style="text-align:center;padding:32px 24px;">
+      ${avatar}
+      <h2 style="font-family:'Outfit';font-size:1.5rem;margin-top:14px;">${escapeHtml(p.name || 'Freelancer')}</h2>
+      <p style="color:var(--freelancer);font-weight:600;margin-top:4px;">${escapeHtml(p.profession || 'Video Editor')}</p>
+      <p style="color:var(--yellow);font-weight:600;margin-top:6px;">${rating}</p>
+
+      <div style="display:flex;justify-content:center;gap:24px;margin-top:18px;">
+        <div><div style="font-family:'Outfit';font-size:1.4rem;font-weight:700;color:var(--accent);">${stats.completed_count || 0}</div>
+             <div style="font-size:.72rem;color:var(--text-3);">Completed</div></div>
+        <div><div style="font-family:'Outfit';font-size:1.4rem;font-weight:700;color:var(--green);">✓</div>
+             <div style="font-size:.72rem;color:var(--text-3);">Verified</div></div>
+      </div>
+
+      <button class="btn btn-primary" style="margin-top:20px;" onclick="showScreen('screen-auth')">Hire on Aalynex →</button>
+    </div>
+
+    <div class="det-card"><h4>Skills</h4><div style="display:flex;flex-wrap:wrap;gap:6px;">${skills}</div></div>
+    ${links ? `<div class="det-card"><h4>Portfolio</h4><div style="display:flex;flex-wrap:wrap;">${links}</div></div>` : ''}
+    <div class="det-card"><h4>Experience</h4>${exp}</div>
+
+    <div class="det-card">
+      <h4>Share this profile</h4>
+      ${shareButtonsHtml(shareUrl, p.name)}
+    </div>
+  `;
+}
+
+// small helper to avoid breaking HTML / XSS
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function shareButtonsHtml(url, name) {
+  const txt = encodeURIComponent(`Check out ${name || 'this editor'} on Aalynex 🎬`);
+  const u = encodeURIComponent(url);
+  return `
+    <div style="display:flex;flex-wrap:wrap;gap:10px;">
+      <a class="social-btn" target="_blank" href="https://wa.me/?text=${txt}%20${u}">WhatsApp</a>
+      <a class="social-btn" target="_blank" href="https://www.linkedin.com/sharing/share-offsite/?url=${u}">LinkedIn</a>
+      <a class="social-btn" target="_blank" href="https://twitter.com/intent/tweet?text=${txt}&url=${u}">X (Twitter)</a>
+      <a class="social-btn" style="cursor:pointer;" onclick="nativeShare('${url}','${(name||'').replace(/'/g,'')}')">Instagram / More</a>
+      <a class="social-btn" style="cursor:pointer;" onclick="copyProfileLink('${url}')">📋 Copy Link</a>
+    </div>`;
+}
+
+// Instagram has no web share URL — use the device share sheet (works on mobile)
+async function nativeShare(url, name) {
+  if (navigator.share) {
+    try { await navigator.share({ title: 'Aalynex', text: `Check out ${name} on Aalynex`, url }); }
+    catch(e) {}
+  } else {
+    copyProfileLink(url);
+    showToast('Link copied — paste it in Instagram', 'info', '📋');
+  }
+}
+
+function copyProfileLink(url) {
+  navigator.clipboard.writeText(url)
+    .then(() => showToast('Profile link copied!', 'ok', '✅'))
+    .catch(() => showToast('Could not copy link', 'err', '⚠️'));
+}
+/* ===== STEP 5 (AUTO — render function dhoondne ki zaroorat nahi) ===== */
+(function attachShareCard() {
+  if (typeof fPage === 'function') {
+    const _origFPage = fPage;
+    fPage = function (page, el) {
+      const r = _origFPage.apply(this, arguments);
+      if (page === 'profile') setTimeout(addPublicShareCard, 60);
+      return r;
+    };
+  }
+  if (typeof fPageMobile === 'function') {
+    const _origFPageMobile = fPageMobile;
+    fPageMobile = function (page, el) {
+      const r = _origFPageMobile.apply(this, arguments);
+      if (page === 'profile') setTimeout(addPublicShareCard, 60);
+      return r;
+    };
+  }
+})();
+
+function addPublicShareCard() {
+  const main = document.getElementById('f-main');
+  if (!main || !CU) return;
+  if (document.getElementById('public-share-card')) return; // dobara add na ho
+
+  const myShareUrl = `${location.origin}${location.pathname}?profile=${CU.id}`;
+  const card = document.createElement('div');
+  card.className = 'det-card';
+  card.id = 'public-share-card';
+  card.innerHTML = `
+    <h4>Your Public Profile</h4>
+    <p style="font-size:.82rem;color:var(--text-2);margin-bottom:10px;">
+      Share this link anywhere — clients can view your portfolio without logging in.</p>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <input class="chat-inp" style="flex:1;" readonly value="${myShareUrl}"/>
+      <button class="btn btn-primary btn-sm" onclick="copyProfileLink('${myShareUrl}')">Copy</button>
+    </div>
+    ${shareButtonsHtml(myShareUrl, CU.name)}
+    <button class="btn btn-ghost btn-sm" style="margin-top:10px;"
+      onclick="openPublicProfile('${CU.id}')">Preview public profile</button>
+  `;
+  main.appendChild(card);
+}
+/* ══════════════════════════════════════════════
+   STEP 6 — PUBLIC PROFILE ROUTER HOOK
+══════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  // URL me ?profile=<id> hai? to public profile kholo
+  checkPublicProfileRoute();
+});
+// ===== PUBLIC PROFILE REDIRECT GUARD =====
+(function () {
+  if (!window.isPublicProfileView) return;   // normal site pe kuch mat karo
+
+  const pid = new URLSearchParams(location.search).get('profile');
+
+  // har redirect ko roko (sirf public profile screen allow)
+  const _origShowScreen = window.showScreen;
+  window.showScreen = function (id) {
+    if (window.isPublicProfileView && id !== 'screen-public-profile') return;
+    return _origShowScreen.apply(this, arguments);
+  };
+
+  // public profile kholo
+  function openIt() {
+    if (typeof openPublicProfile === 'function') openPublicProfile(pid);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', openIt);
+  } else {
+    openIt();
+  }
+})();
 </script>
 <!--End of Tawk.to Script-->
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
