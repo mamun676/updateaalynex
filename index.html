@@ -1451,6 +1451,22 @@ h1 em{
   </div>
 
 </div>
+<div id="screen-public-profile" class="screen">
+  <nav>
+    <div class="logo">
+      <img src="aalynex-logo.png" class="logo-img" draggable="false" alt="Logo"/>
+      <span class="logo-text" draggable="false">Aalynex</span>
+    </div>
+    <div class="nav-right">
+      <button class="btn btn-primary btn-sm" onclick="showScreen('screen-landing')">Join Aalynex →</button>
+    </div>
+  </nav>
+  <div class="auth-wrap" style="align-items:flex-start;padding-top:40px;">
+    <div id="pp-content" style="width:100%;max-width:680px;">
+      <div style="text-align:center;padding:60px 20px;color:var(--text-3);">Loading profile…</div>
+    </div>
+  </div>
+</div>
 
 <div id="screen-auth" class="screen">
   <nav>
@@ -1683,7 +1699,9 @@ h1 em{
 ══════════════════════════════════════════════ */
 const SUPABASE_URL = "https://sfzbrygqpodjinhpagaz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_h1rmGWdbBlMWPhkKugtOQw_6tP5ArtI";
-
+// Public profile link detect karo
+const __profileParam = new URLSearchParams(location.search).get('profile');
+window.isPublicProfileView = !!__profileParam;
 // ═══════════════════════════════════════
 // AWS S3 HELPERS
 // ═══════════════════════════════════════
@@ -2090,10 +2108,11 @@ async function doLogin() {
       avatar: profile.name || email.charAt(0).toUpperCase(),
       createdAt: new Date(profile.created_at).getTime(),
       skills: profile.skills || [],
-      portfoliolinks: profile.portfoliolinks || [],
-      resumeurl: profile.resumeurl || '',
-      photourl: profile.photourl || '',
-      experience: profile.experience || [],
+portfolio_links: profile.portfolio_links || {},
+resume_url: profile.resume_url || '',
+photo_url: profile.photo_url || '',
+experience: profile.experience || [],
+
 // NEW: Feature 1
 upiId: profile.upi_id || '',
 bankAccountName: profile.bank_account_name || '',
@@ -2646,21 +2665,114 @@ function cHome() {
   const projs  = DB.projects().filter(p => p.creatorId === CU.id);
   const active = projs.filter(p => p.status === 'ongoing').length;
   const done   = projs.filter(p => p.status === 'completed').length;
-  const spent  = projs.filter(p => p.paid).reduce((s,p) => s + p.budget, 0);
   const recent = projs.slice(-4).reverse();
-  
+
+  // ── Freelancer preview row (Top 5-6, last 7 days) ──
+const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+const allF = DB.users().filter(u => u.role === 'freelancer');
+const allP = DB.projects();
+
+const getFStats = (fid) => {
+  const allComp   = allP.filter(p => p.freelancerId === fid && p.status === 'completed');
+  const recentComp= allComp.filter(p => p.createdAt >= sevenDaysAgo);
+  const rated     = allComp.filter(p => p.rating && p.rating > 0);
+  const recentRated= recentComp.filter(p => p.rating && p.rating > 0);
+  const avg       = rated.length > 0 ? rated.reduce((s,p)=>s+p.rating,0)/rated.length : 0;
+  return {
+    completedCount: allComp.length,
+    recentCount:    recentComp.length,
+    recentRated:    recentRated.length,
+    avgRating:      avg
+  };
+};
+
+const sortedF = [...allF]
+  .sort((a, b) => {
+    const sa = getFStats(a.id), sb = getFStats(b.id);
+    const scoreA = (sa.recentRated * 2) + sa.recentCount + (sa.avgRating * 0.5);
+    const scoreB = (sb.recentRated * 2) + sb.recentCount + (sb.avgRating * 0.5);
+    return scoreB - scoreA;
+  })
+  .slice(0, 6);
+
+const fRow = sortedF.length > 0 ? `
+<div style="margin-bottom:24px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div>
+      <span class="section-title" style="margin-bottom:0;">Top Freelancers</span>
+      <span style="font-size:.7rem;color:var(--text-3);margin-left:8px;background:var(--accent-soft);color:var(--accent);padding:2px 8px;border-radius:99px;font-weight:600;">This Week</span>
+    </div>
+    <button onclick="cPage('browse',document.querySelector('[data-page=browse]'))" class="btn btn-ghost btn-xs" style="font-size:.75rem;">See All →</button>
+  </div>
+  <div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:16px 14px;box-shadow:var(--shadow-sm);">
+    <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;align-items:stretch;">
+      ${sortedF.map(f => {
+        const st = getFStats(f.id);
+        const skills = (f.skills||[]).slice(0,2);
+        const stars = st.avgRating > 0
+          ? Array.from({length:5},(_,i)=>`<span style="color:${i<Math.round(st.avgRating)?'#D97706':'rgba(0,0,0,0.13)'}">&#9733;</span>`).join('')
+          : `<span style="font-size:.6rem;color:var(--text-3);">New</span>`;
+        const photo = (f.photo_url||f.photourl)
+          ? `<img src="${f.photo_url||f.photourl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none'">`
+          : `<span style="font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;color:#fff;">${(f.avatar||f.name.charAt(0)).toUpperCase()}</span>`;
+        return `
+        <div style="min-width:140px;max-width:140px;display:flex;flex-direction:column;align-items:center;text-align:center;padding:14px 10px 12px;border-radius:12px;background:var(--bg2);border:1px solid var(--glass-border);flex-shrink:0;gap:5px;transition:border-color .2s,box-shadow .2s;"
+          onmouseover="this.style.borderColor='rgba(224,92,42,.3)';this.style.boxShadow='0 4px 14px rgba(224,92,42,.1)'"
+          onmouseout="this.style.borderColor='var(--glass-border)';this.style.boxShadow='none'">
+          <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;overflow:hidden;border:2px solid var(--glass-border-strong);flex-shrink:0;margin-bottom:2px;">
+            ${photo}
+          </div>
+          <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:.78rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">${f.name}</div>
+          <div style="font-size:.65rem;font-weight:600;color:var(--accent2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">${f.profession||'Video Editor'}</div>
+          <div style="font-size:.65rem;line-height:1;">${stars}</div>
+          <div style="font-size:.6rem;color:var(--text-3);">${st.avgRating>0?st.avgRating.toFixed(1):'New'} · ${st.completedCount} done</div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:3px;min-height:14px;">
+            ${skills.map(s=>`<span style="background:var(--accent2-soft);color:var(--accent2);border-radius:99px;font-size:.55rem;font-weight:600;padding:2px 6px;border:1px solid rgba(124,58,237,.15);">${s}</span>`).join('')}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px;width:100%;margin-top:4px;">
+            <button class="btn btn-outline-f btn-xs full-btn" style="font-size:.65rem;padding:5px 6px;" onclick="event.stopPropagation();viewFreelancerPortfolio('${f.id}')">Portfolio</button>
+            <button class="btn btn-primary btn-xs full-btn" style="font-size:.65rem;padding:5px 6px;" onclick="event.stopPropagation();openSendRequestModal('${f.id}','${f.name.replace(/'/g,"\\'")}')">Request →</button>
+          </div>
+        </div>`;
+      }).join('')}
+      <!-- Arrow → Browse All -->
+      <div style="min-width:52px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <button onclick="cPage('browse',document.querySelector('[data-page=browse]'))"
+          style="width:40px;height:40px;border-radius:50%;background:var(--surface);border:1.5px solid rgba(224,92,42,.3);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow-sm);transition:all .2s;flex-shrink:0;"
+          onmouseover="this.style.background='var(--accent)';this.querySelector('svg').style.stroke='#fff'"
+          onmouseout="this.style.background='var(--surface)';this.querySelector('svg').style.stroke='var(--accent)'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;transition:stroke .2s;"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>` : '';
+
   return `
   <div class="page-head"><h2>Dashboard</h2><p>Overview of your creator activity</p></div>
   <div class="cards-grid">
-    <div class="mc a"><div class="label">Active Projects</div><div class="value">${active}</div><div class="sub">Currently ongoing</div></div>
-    <div class="mc g"><div class="label">Completed</div><div class="value">${done}</div><div class="sub">All time</div></div>
-    <div class="mc b"><div class="label">Total Projects</div><div class="value">${projs.length}</div><div class="sub">Ever posted</div></div>
-    <div class="mc p" style="cursor:pointer;" onclick="cPage('browse', document.querySelector('[data-page=browse]'))">
-      <div class="label">Browse Freelancers</div>
-      <div class="value" style="font-size:1.2rem;">🔍</div>
-      <div class="sub">Find & hire editors</div>
+    <div class="mc a" style="cursor:pointer;" title="View ongoing projects" onclick="cPage('projects', document.querySelector('[data-page=projects]')); setTimeout(()=>filterProjects('ongoing'), 150)">
+      <div class="label">Active Projects</div><div class="value">${active}</div><div class="sub">Currently ongoing</div>
     </div>
-  </div>
+    <div class="mc g" style="cursor:pointer;" title="View completed projects" onclick="cPage('projects', document.querySelector('[data-page=projects]')); setTimeout(()=>filterProjects('completed'), 150)">
+      <div class="label">Completed</div><div class="value">${done}</div><div class="sub">All time</div>
+    </div>
+    <div class="mc b" style="cursor:pointer;" title="View all projects" onclick="cPage('projects', document.querySelector('[data-page=projects]')); setTimeout(()=>filterProjects('all'), 150)">
+      <div class="label">Total Projects</div><div class="value">${projs.length}</div><div class="sub">Ever posted</div>
+    </div>
+    <div class="mc p" style="cursor:pointer;background:linear-gradient(135deg,rgba(124,58,237,.1),rgba(29,78,216,.08));border:1.5px solid rgba(124,58,237,.25);position:relative;overflow:hidden;" onclick="cPage('browse',document.querySelector('[data-page=browse]'))">
+      <div style="position:absolute;top:-18px;right:-18px;width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(29,78,216,.1));pointer-events:none;"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--accent2),var(--blue));display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(124,58,237,.3);">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div class="label" style="margin:0;color:var(--accent2);font-weight:600;">Browse Editors</div>
+      </div>
+      <div class="value" style="font-size:1rem;font-family:'DM Sans',sans-serif;font-weight:500;color:var(--text);">Find &amp; Hire</div>
+      <div class="sub" style="color:var(--accent2);font-weight:500;margin-top:2px;">Top talent available →</div>
+    </div>
+</div>
+  ${fRow}
   <div class="section-title">Recent Projects</div>
   <div class="project-list">
     ${recent.length
@@ -2672,8 +2784,7 @@ function cHome() {
               <div class="pmeta">${p.freelancerId ? 'Editor assigned' : 'Waiting for acceptance'} · ₹${fmt(p.budget)}</div>
             </div>
             <div class="pstatus ${statusClass(p.status)}">${statusLabel(p.status)}</div>
-          </div>
-        `).join('')
+          </div>`).join('')
       : '<div style="color:var(--text-3);font-size:.85rem;padding:16px 0;">No projects yet — post your first one!</div>'}
   </div>
   <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;">
@@ -3113,7 +3224,7 @@ async function completePayment() {
 
           await sendMsg(CU.id, p.freelancerId, null, null,
             `✅ Payment of ₹${fmt(total)} done! Project completed. Thanks for the great work!`);
-
+          sendPaymentDoneEmail(p.freelancerId, p.title, total, p.rating || 0);
           showToast('✅ Payment Successful! Now rate your editor.', 'ok', '');
           activeManageProjectId = p.id;
           wfStep = 7;
@@ -3724,13 +3835,19 @@ async function acceptProject(id) {
         }
         showToast(`Accepted! ${atts.length} raw file(s) sent to chat.`, 'ok', '🎉');
       } else {
-        showToast('Project accepted! Chat activated.', 'ok', '');
+        sendAcceptanceNotificationEmail(creatorId, p?.title, p?.budget, p?.deadline, p?.contentType);
+showToast('Project accepted! Chat activated.', 'ok', '');
+        
       }
     } catch (e) {
-      showToast('Project accepted! Chat activated.', 'ok', '');
+      sendAcceptanceNotificationEmail(creatorId, p?.title, p?.budget, p?.deadline, p?.contentType);
+showToast('Project accepted! Chat activated.', 'ok', '');
+     
     }
   } else {
-    showToast('Project accepted! Chat activated.', 'ok', '');
+    sendAcceptanceNotificationEmail(creatorId, p?.title, p?.budget, p?.deadline, p?.contentType);
+showToast('Project accepted! Chat activated.', 'ok', '');
+    
   }
 
   renderF('ongoing');
@@ -3923,6 +4040,7 @@ if (progFill) progFill.style.width = '80%';
     await sendMsg(CU.id, proj.creatorId, fileUrl, file.name, msgText);
 
     if (progFill) progFill.style.width = '100%';
+    sendFinalUploadNotificationEmail(proj.creatorId, proj.title);
     showToast('Final video uploaded and sent to creator!', 'ok', '');
     fPage('upload', document.querySelector('[data-page="upload"]'));
   } catch(err) {
@@ -5231,24 +5349,75 @@ function _teamEscHandler(e) {
 /* ══════════════════════════════════════════════
    CREATOR — BROWSE FREELANCERS
 ══════════════════════════════════════════════ */
-function cBrowseFreelancers() {
+function fisherYatesShuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function hybridQualityScore(freelancer, stats) {
+  const ratingScore  = (stats.avgRating || 0) / 5;
+  const projectScore = Math.min(stats.completedCount / 20, 1);
+  const expScore     = Math.min((freelancer.experience || []).length / 10, 1);
+  return (ratingScore * 0.5) + (projectScore * 0.3) + (expScore * 0.2);
+}
+function cBrowseFreelancers(searchVal = '', sortBy = '') {
   const freelancers = DB.users().filter(u => u.role === 'freelancer');
   const allProjects = DB.projects();
 
   const getStats = (fid) => {
     const completed = allProjects.filter(p => p.freelancerId === fid && p.status === 'completed');
-    const rated = completed.filter(p => p.rating && p.rating > 0);
-    const avg = rated.length > 0
-      ? (rated.reduce((s, p) => s + p.rating, 0) / rated.length).toFixed(1)
-      : null;
+    const rated     = completed.filter(p => p.rating && p.rating > 0);
+    const avg       = rated.length > 0
+      ? (rated.reduce((s, p) => s + p.rating, 0) / rated.length)
+      : 0;
     return { completedCount: completed.length, avgRating: avg };
   };
 
-  const cards = freelancers.length > 0 ? freelancers.map(f => {
-    const stats = getStats(f.id);
-    const skills = (f.skills || f.skills || []).slice(0, 3);
-    const starsHtml = stats.avgRating
-      ? Array.from({length:5}, (_,i) =>
+  // Step 1: Search filter
+  let filtered = freelancers.filter(f =>
+    !searchVal || f.name.toLowerCase().includes(searchVal.toLowerCase())
+  );
+
+  // Step 2: Sort / Order
+  if (sortBy === 'most_rated') {
+    filtered = [...filtered].sort((a, b) => getStats(b.id).avgRating - getStats(a.id).avgRating);
+  } else if (sortBy === 'most_projects') {
+    filtered = [...filtered].sort((a, b) => getStats(b.id).completedCount - getStats(a.id).completedCount);
+  } else if (sortBy === 'most_experienced') {
+    filtered = [...filtered].sort((a, b) =>
+      (b.experience || []).length - (a.experience || []).length
+    );
+  } else {
+    // Default: 70% random + 30% quality hybrid
+    const shuffled = fisherYatesShuffle(filtered);
+    filtered = shuffled
+      .map(f => ({
+        f,
+        score: (Math.random() * 0.7) + (hybridQualityScore(f, getStats(f.id)) * 0.3)
+      }))
+      .sort((a, b) => b.score - a.score)
+      .map(({ f }) => f);
+  }
+
+ const _starSvg   = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+  const _folderSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
+  const _medalSvg  = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>';
+  const sortOptions = [
+    { val: 'most_rated',       label: 'Most Rated',         icon: _starSvg   },
+    { val: 'most_projects',    label: 'Most Projects Done',  icon: _folderSvg },
+    { val: 'most_experienced', label: 'Most Experienced',    icon: _medalSvg  },
+  ];
+
+  const cards = filtered.length > 0 ? filtered.map(f => {
+    const stats   = getStats(f.id);
+    const avgDisp = stats.avgRating > 0 ? stats.avgRating.toFixed(1) : null;
+    const skills  = (f.skills || []).slice(0, 3);
+    const starsHtml = avgDisp
+      ? Array.from({ length: 5 }, (_, i) =>
           `<span style="color:${i < Math.round(stats.avgRating) ? '#D97706' : 'rgba(0,0,0,0.12)'};">&#9733;</span>`
         ).join('')
       : `<span style="font-size:.72rem;color:var(--text-3);">No ratings yet</span>`;
@@ -5265,7 +5434,7 @@ function cBrowseFreelancers() {
       <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:.95rem;color:var(--text);letter-spacing:-.1px;">${f.name}</div>
       <div style="font-size:.75rem;font-weight:600;color:var(--accent2);">${f.profession || 'Video Editor'}</div>
       <div style="font-size:.75rem;">${starsHtml}</div>
-      <div style="font-size:.7rem;color:var(--text-3);margin-bottom:2px;">${stats.avgRating || 'New'} &middot; ${stats.completedCount} Projects done</div>
+      <div style="font-size:.7rem;color:var(--text-3);margin-bottom:2px;">${avgDisp || 'New'} &middot; ${stats.completedCount} Projects &middot; ${(f.experience || []).length} Exp</div>
       <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:5px;margin:4px 0 8px;">
         ${skills.length > 0
           ? skills.map(s => `<span class="tag pu" style="font-size:.65rem;padding:3px 8px;">${s}</span>`).join('')
@@ -5276,15 +5445,108 @@ function cBrowseFreelancers() {
         <button class="btn btn-primary btn-sm full-btn" onclick="openSendRequestModal('${f.id}','${f.name.replace(/'/g,"\\'")}')">Send Request &rarr;</button>
       </div>
     </div>`;
-  }).join('') : `<div class="alert alert-i" style="grid-column:1/-1;">No freelancers registered yet. Check back soon!</div>`;
+  }).join('') : `<div class="alert alert-i" style="grid-column:1/-1;">No freelancers found.</div>`;
 
   return `
   <div class="page-head"><h2>Browse Freelancers</h2><p>Find the perfect editor for your project</p></div>
-  <div class="f-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;">
+  <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center;">
+    <div style="flex:1;min-width:180px;position:relative;">
+      <svg style="position:absolute;left:11px;top:50%;transform:translateY(-50%);pointer-events:none;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        id="browse-search-inp"
+        value="${searchVal}"
+        placeholder="Search by name…"
+        oninput="cBrowseSearch()"
+        style="width:100%;padding:9px 13px 9px 34px;background:var(--surface);border:1px solid var(--glass-border-strong);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:.85rem;color:var(--text);outline:none;box-shadow:var(--shadow-xs);"
+      />
+    </div>
+    <div style="position:relative;" id="browse-sort-wrapper">
+      <button id="browse-sort-btn" onclick="toggleSortDropdown()"
+        style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--surface);border:1.5px solid var(--glass-border-strong);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:.84rem;color:${sortBy?'var(--text)':'var(--text-3)'};cursor:pointer;box-shadow:var(--shadow-xs);min-width:195px;justify-content:space-between;transition:border-color .2s,box-shadow .2s,color .2s;outline:none;"
+        onmouseover="this.style.borderColor='rgba(224,92,42,.4)';this.style.boxShadow='var(--shadow-sm)';"
+        onmouseout="this.style.borderColor='var(--glass-border-strong)';this.style.boxShadow='var(--shadow-xs)';">
+        <div style="display:flex;align-items:center;gap:7px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="9" y2="18"/></svg>
+          <span id="browse-sort-label">${sortBy==='most_rated'?'Most Rated':sortBy==='most_projects'?'Most Projects Done':sortBy==='most_experienced'?'Most Experienced':'Sort By'}</span>
+        </div>
+        <svg id="browse-sort-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .22s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div id="browse-sort-menu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:210px;background:var(--surface);border:1px solid var(--glass-border-strong);border-radius:var(--radius);box-shadow:var(--shadow-lg);z-index:200;overflow:hidden;animation:fadeDown .15s ease both;">
+        ${sortOptions.map(o => `<div onclick="cBrowseSort('${o.val}')"
+          style="display:flex;align-items:center;gap:10px;padding:11px 15px;cursor:pointer;font-size:.84rem;font-weight:${sortBy===o.val?'600':'400'};color:${sortBy===o.val?'var(--accent)':'var(--text-2)'};background:${sortBy===o.val?'var(--accent-soft)':'transparent'};border-bottom:1px solid var(--glass-border);transition:background .12s;"
+          onmouseover="if('${sortBy}'!=='${o.val}')this.style.background='var(--bg2)'"
+          onmouseout="this.style.background='${sortBy===o.val?'var(--accent-soft)':'transparent'}'">
+          <span style="flex-shrink:0;color:${sortBy===o.val?'var(--accent)':'var(--text-3)'};">${o.icon}</span>
+          <span style="flex:1;">${o.label}</span>
+          ${sortBy===o.val?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>':''}
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>
+  <div class="f-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;" id="browse-grid">
     ${cards}
   </div>`;
 }
 
+let _browseSort = '';
+let _browseSearch = '';
+
+function cBrowseSearch() {
+  _browseSearch = document.getElementById('browse-search-inp')?.value || '';
+  // Sirf grid update karo — full page re-render nahi (cursor bug fix)
+  const grid = document.getElementById('browse-grid');
+  if (grid) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = cBrowseFreelancers(_browseSearch, _browseSort);
+    const newGrid = tmp.querySelector('#browse-grid');
+    if (newGrid) grid.innerHTML = newGrid.innerHTML;
+  }
+  // Focus + cursor position restore karo
+  const inp = document.getElementById('browse-search-inp');
+  if (inp) { inp.focus(); inp.setSelectionRange(_browseSearch.length, _browseSearch.length); }
+}
+
+function cBrowseSort(val) {
+  _browseSort = val;
+  _browseSearch = document.getElementById('browse-search-inp')?.value || '';
+  closeSortDropdown();
+  // Label update karo
+  const labels = { 'most_rated': 'Most Rated', 'most_projects': 'Most Projects Done', 'most_experienced': 'Most Experienced' };
+  const lbl = document.getElementById('browse-sort-label');
+  if (lbl) lbl.textContent = labels[val] || 'Sort By';
+  // Sirf grid update karo
+  const grid = document.getElementById('browse-grid');
+  if (grid) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = cBrowseFreelancers(_browseSearch, _browseSort);
+    const newGrid = tmp.querySelector('#browse-grid');
+    if (newGrid) grid.innerHTML = newGrid.innerHTML;
+  }
+}
+
+function toggleSortDropdown() {
+  const menu     = document.getElementById('browse-sort-menu');
+  const chevron  = document.getElementById('browse-sort-chevron');
+  if (!menu) return;
+  const isOpen = menu.style.display !== 'none';
+  menu.style.display = isOpen ? 'none' : 'block';
+  if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+  if (!isOpen) setTimeout(() => document.addEventListener('click', _sortOutsideHandler), 0);
+  else document.removeEventListener('click', _sortOutsideHandler);
+}
+
+function _sortOutsideHandler(e) {
+  const wrapper = document.getElementById('browse-sort-wrapper');
+  if (wrapper && !wrapper.contains(e.target)) closeSortDropdown();
+}
+
+function closeSortDropdown() {
+  const menu    = document.getElementById('browse-sort-menu');
+  const chevron = document.getElementById('browse-sort-chevron');
+  if (menu)    menu.style.display = 'none';
+  if (chevron) chevron.style.transform = '';
+  document.removeEventListener('click', _sortOutsideHandler);
+}
 /* ──────────────────────────────────────────
    SEND REQUEST MODAL (direct from browse)
 ────────────────────────────────────────── */
@@ -5400,6 +5662,300 @@ async function sendProjectNotificationEmail(freelancerId, projectTitle, budget, 
     console.warn('Email failed:', e);
   }
 }
+async function sendAcceptanceNotificationEmail(creatorId, projectTitle, budget, deadline, contentType) {
+  if (!supaClient || !creatorId) return;
+  try {
+    const { data: { session } } = await supaClient.auth.getSession();
+    if (!session) return;
+    await fetch(
+      'https://sfzbrygqpodjinhpagaz.supabase.co/functions/v1/send-email',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          type: 'project_accepted',
+          creatorId,
+          projectTitle,
+          budget,
+          deadline,
+          contentType,
+          freelancerName: CU.name
+        })
+      }
+    );
+  } catch(e) {
+    console.warn('Acceptance email failed:', e);
+  }
+}
+async function sendFinalUploadNotificationEmail(creatorId, projectTitle) {
+  if (!supaClient || !creatorId) return;
+  try {
+    const { data: { session } } = await supaClient.auth.getSession();
+    if (!session) return;
+    await fetch(
+      'https://sfzbrygqpodjinhpagaz.supabase.co/functions/v1/send-email',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          type: 'final_uploaded',
+          creatorId,
+          projectTitle,
+          freelancerName: CU.name
+        })
+      }
+    );
+  } catch(e) {
+    console.warn('Final upload email failed:', e);
+  }
+}
+async function sendPaymentDoneEmail(freelancerId, projectTitle, amount, rating) {
+  if (!supaClient || !freelancerId) return;
+  try {
+    const { data: { session } } = await supaClient.auth.getSession();
+    if (!session) return;
+    await fetch(
+      'https://sfzbrygqpodjinhpagaz.supabase.co/functions/v1/send-email',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          type: 'payment_done',
+          freelancerId,
+          projectTitle,
+          amount,
+          rating: rating || 0,
+          creatorName: CU.name
+        })
+      }
+    );
+  } catch(e) {
+    console.warn('Payment done email failed:', e);
+  }
+}
+/* ════════════ PUBLIC FREELANCER PROFILE ════════════ */
+
+// 1. On load, check the URL for a shared profile link
+function checkPublicProfileRoute() {
+  const params = new URLSearchParams(window.location.search);
+  const profileId = params.get('profile');
+  if (profileId) {
+    openPublicProfile(profileId);
+    return true;
+  }
+  return false;
+}
+
+// 2. Load + show a freelancer's public profile (works logged-out)
+async function openPublicProfile(id) {
+  showScreen('screen-public-profile');
+  const box = document.getElementById('pp-content');
+
+  if (!supaClient) {
+    box.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text-3);">Unable to connect.</div>`;
+    return;
+  }
+
+  try {
+    const [{ data: p }, { data: stats }] = await Promise.all([
+      supaClient.from('public_freelancer_profiles').select('*').eq('id', id).single(),
+      supaClient.from('public_freelancer_stats').select('*').eq('freelancer_id', id).maybeSingle()
+    ]);
+
+    if (!p) {
+      box.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text-3);">
+        <h2 style="font-family:'Outfit';margin-bottom:8px;">Profile not found</h2>
+        <p>This freelancer profile doesn’t exist or is no longer available.</p>
+        <button class="btn btn-primary" style="margin-top:18px;" onclick="showScreen('screen-landing')">Go to Aalynex</button>
+      </div>`;
+      return;
+    }
+    renderPublicProfile(p, stats || {});
+  } catch (e) {
+    console.warn('Public profile load failed', e);
+    box.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text-3);">Couldn’t load this profile.</div>`;
+  }
+}
+
+// 3. Render it
+function renderPublicProfile(p, stats) {
+  const box = document.getElementById('pp-content');
+  const initial = (p.name || 'U').charAt(0).toUpperCase();
+
+  // Anon visitors can't fetch private S3 photos — only use direct http(s) URLs,
+  // otherwise fall back to the initial avatar.
+  const photo = (p.photo_url && p.photo_url.startsWith('http')) ? p.photo_url : null;
+
+  const avatar = photo
+    ? `<img src="${photo}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:2px solid var(--glass-border-strong);"/>`
+    : `<div style="width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+         font-family:'Outfit';font-size:2rem;font-weight:700;color:#fff;margin:0 auto;
+         background:linear-gradient(135deg,var(--freelancer),#6D28D9);">${initial}</div>`;
+
+  const rating = stats.avg_rating
+    ? `★ ${stats.avg_rating} <span style="color:var(--text-3);font-weight:400;">(${stats.rating_count} reviews)</span>`
+    : `<span style="color:var(--text-3);">No reviews yet</span>`;
+
+  // skills / portfolio_links / experience are flexible — handle array or object
+  const skills = (Array.isArray(p.skills) ? p.skills : [])
+    .map(s => `<span class="tag pu">${escapeHtml(s)}</span>`).join(' ') || '<span style="color:var(--text-3);">—</span>';
+
+  const links = p.portfolio_links && typeof p.portfolio_links === 'object'
+    ? Object.entries(p.portfolio_links).filter(([,v]) => v)
+        .map(([k,v]) => `<a href="${escapeHtml(v)}" target="_blank" class="social-btn" style="margin:4px;">${escapeHtml(k)}</a>`).join('')
+    : '';
+
+  const exp = (Array.isArray(p.experience) ? p.experience : [])
+    .map(x => `<div class="info-row"><span>${escapeHtml(x.role || x.title || 'Experience')}</span>
+               <span class="key">${escapeHtml(x.company || x.years || '')}</span></div>`).join('')
+    || '<p style="color:var(--text-3);font-size:.85rem;">No experience added yet.</p>';
+
+  const shareUrl = `${location.origin}${location.pathname}?profile=${p.id}`;
+
+  box.innerHTML = `
+    <div class="det-card" style="text-align:center;padding:32px 24px;">
+      ${avatar}
+      <h2 style="font-family:'Outfit';font-size:1.5rem;margin-top:14px;">${escapeHtml(p.name || 'Freelancer')}</h2>
+      <p style="color:var(--freelancer);font-weight:600;margin-top:4px;">${escapeHtml(p.profession || 'Video Editor')}</p>
+      <p style="color:var(--yellow);font-weight:600;margin-top:6px;">${rating}</p>
+
+      <div style="display:flex;justify-content:center;gap:24px;margin-top:18px;">
+        <div><div style="font-family:'Outfit';font-size:1.4rem;font-weight:700;color:var(--accent);">${stats.completed_count || 0}</div>
+             <div style="font-size:.72rem;color:var(--text-3);">Completed</div></div>
+        <div><div style="font-family:'Outfit';font-size:1.4rem;font-weight:700;color:var(--green);">✓</div>
+             <div style="font-size:.72rem;color:var(--text-3);">Verified</div></div>
+      </div>
+
+      <button class="btn btn-primary" style="margin-top:20px;" onclick="showScreen('screen-auth')">Hire on Aalynex →</button>
+    </div>
+
+    <div class="det-card"><h4>Skills</h4><div style="display:flex;flex-wrap:wrap;gap:6px;">${skills}</div></div>
+    ${links ? `<div class="det-card"><h4>Portfolio</h4><div style="display:flex;flex-wrap:wrap;">${links}</div></div>` : ''}
+    <div class="det-card"><h4>Experience</h4>${exp}</div>
+
+    <div class="det-card">
+      <h4>Share this profile</h4>
+      ${shareButtonsHtml(shareUrl, p.name)}
+    </div>
+  `;
+}
+
+// small helper to avoid breaking HTML / XSS
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function shareButtonsHtml(url, name) {
+  const txt = encodeURIComponent(`Check out ${name || 'this editor'} on Aalynex 🎬`);
+  const u = encodeURIComponent(url);
+  return `
+    <div style="display:flex;flex-wrap:wrap;gap:10px;">
+      <a class="social-btn" target="_blank" href="https://wa.me/?text=${txt}%20${u}">WhatsApp</a>
+      <a class="social-btn" target="_blank" href="https://www.linkedin.com/sharing/share-offsite/?url=${u}">LinkedIn</a>
+      <a class="social-btn" target="_blank" href="https://twitter.com/intent/tweet?text=${txt}&url=${u}">X (Twitter)</a>
+      <a class="social-btn" style="cursor:pointer;" onclick="nativeShare('${url}','${(name||'').replace(/'/g,'')}')">Instagram / More</a>
+      <a class="social-btn" style="cursor:pointer;" onclick="copyProfileLink('${url}')">📋 Copy Link</a>
+    </div>`;
+}
+
+// Instagram has no web share URL — use the device share sheet (works on mobile)
+async function nativeShare(url, name) {
+  if (navigator.share) {
+    try { await navigator.share({ title: 'Aalynex', text: `Check out ${name} on Aalynex`, url }); }
+    catch(e) {}
+  } else {
+    copyProfileLink(url);
+    showToast('Link copied — paste it in Instagram', 'info', '📋');
+  }
+}
+
+function copyProfileLink(url) {
+  navigator.clipboard.writeText(url)
+    .then(() => showToast('Profile link copied!', 'ok', '✅'))
+    .catch(() => showToast('Could not copy link', 'err', '⚠️'));
+}
+/* ===== STEP 5 (AUTO — render function dhoondne ki zaroorat nahi) ===== */
+(function attachShareCard() {
+  if (typeof fPage === 'function') {
+    const _origFPage = fPage;
+    fPage = function (page, el) {
+      const r = _origFPage.apply(this, arguments);
+      if (page === 'profile') setTimeout(addPublicShareCard, 60);
+      return r;
+    };
+  }
+  if (typeof fPageMobile === 'function') {
+    const _origFPageMobile = fPageMobile;
+    fPageMobile = function (page, el) {
+      const r = _origFPageMobile.apply(this, arguments);
+      if (page === 'profile') setTimeout(addPublicShareCard, 60);
+      return r;
+    };
+  }
+})();
+
+function addPublicShareCard() {
+  const main = document.getElementById('f-main');
+  if (!main || !CU) return;
+  if (document.getElementById('public-share-card')) return; // dobara add na ho
+
+  const myShareUrl = `${location.origin}${location.pathname}?profile=${CU.id}`;
+  const card = document.createElement('div');
+  card.className = 'det-card';
+  card.id = 'public-share-card';
+  card.innerHTML = `
+    <h4>Your Public Profile</h4>
+    <p style="font-size:.82rem;color:var(--text-2);margin-bottom:10px;">
+      Share this link anywhere — clients can view your portfolio without logging in.</p>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <input class="chat-inp" style="flex:1;" readonly value="${myShareUrl}"/>
+      <button class="btn btn-primary btn-sm" onclick="copyProfileLink('${myShareUrl}')">Copy</button>
+    </div>
+    ${shareButtonsHtml(myShareUrl, CU.name)}
+    <button class="btn btn-ghost btn-sm" style="margin-top:10px;"
+      onclick="openPublicProfile('${CU.id}')">Preview public profile</button>
+  `;
+  main.appendChild(card);
+}
+/* ══════════════════════════════════════════════
+   STEP 6 — PUBLIC PROFILE ROUTER HOOK
+══════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  // URL me ?profile=<id> hai? to public profile kholo
+  checkPublicProfileRoute();
+});
+// ===== PUBLIC PROFILE REDIRECT GUARD =====
+(function () {
+  if (!window.isPublicProfileView) return;   // normal site pe kuch mat karo
+
+  const pid = new URLSearchParams(location.search).get('profile');
+
+  // har redirect ko roko (sirf public profile screen allow)
+  const _origShowScreen = window.showScreen;
+  window.showScreen = function (id) {
+    if (window.isPublicProfileView && id !== 'screen-public-profile') return;
+    return _origShowScreen.apply(this, arguments);
+  };
+
+  // public profile kholo
+  function openIt() {
+    if (typeof openPublicProfile === 'function') openPublicProfile(pid);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', openIt);
+  } else {
+    openIt();
+  }
+})();
 </script>
 <!--End of Tawk.to Script-->
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
