@@ -2,293 +2,464 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Aalynex — Connect Creators with Pro Editors</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
-<style>
-:root{
-  --bg:#0C0C0E; --bg2:#141418; --surface:#17171C; --raised:#1E1E25;
-  --border:rgba(255,255,255,.08); --border2:rgba(255,255,255,.14);
-  --text:#FFFFFF; --text2:rgba(255,255,255,.66); --text3:rgba(255,255,255,.42);
-  --accent:#E05C2A; --accent2:#FF8A50; --accent-soft:rgba(224,92,42,.14);
-  --green:#46A171; --purple:#8B7BD8; --blue:#4F9BE8;
-  --radius:16px; --radius-sm:12px;
-  --maxw:1180px;
-  --font:'Outfit',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-  --font2:'DM Sans',system-ui,sans-serif;
-}
-*{margin:0;padding:0;box-sizing:border-box;}
-html{scroll-behavior:smooth;}
-body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:hidden;line-height:1.5;-webkit-font-smoothing:antialiased;}
-a{color:inherit;text-decoration:none;}
-img{max-width:100%;display:block;}
-.wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px;}
-.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.05;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
-.aurora{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
-.aurora span{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;}
-.aurora .a1{width:520px;height:520px;background:#E05C2A;top:-160px;left:-120px;animation:float1 18s ease-in-out infinite;}
-.aurora .a2{width:460px;height:460px;background:#6C3FB5;top:10%;right:-140px;animation:float2 22s ease-in-out infinite;}
-.aurora .a3{width:400px;height:400px;background:#E05C2A;bottom:-160px;left:30%;opacity:.28;animation:float3 26s ease-in-out infinite;}
-@keyframes float1{50%{transform:translate(120px,80px) scale(1.15);}}
-@keyframes float2{50%{transform:translate(-100px,120px) scale(1.1);}}
-@keyframes float3{50%{transform:translate(80px,-90px) scale(1.2);}}
-.progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:100;background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 0 12px var(--accent);}
-.cursor-glow{position:fixed;width:420px;height:420px;border-radius:50%;z-index:2;pointer-events:none;background:radial-gradient(circle,rgba(224,92,42,.10),transparent 60%);transform:translate(-50%,-50%);transition:opacity .3s;opacity:0;}
-nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:all .35s;}
-nav.scrolled{background:rgba(12,12,14,.75);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);}
-.nav-in{display:flex;align-items:center;justify-content:space-between;height:72px;}
-.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.3rem;letter-spacing:-.02em;}
-.brand .mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-weight:900;color:#fff;box-shadow:0 6px 18px rgba(224,92,42,.4);}
-.brand b .o{color:var(--accent);}
-.nav-links{display:flex;align-items:center;gap:30px;}
-.nav-links a{font-size:.9rem;color:var(--text2);transition:color .2s;font-weight:500;}
-.nav-links a:hover{color:var(--text);}
-.nav-cta{display:flex;gap:12px;align-items:center;}
-.btn{position:relative;display:inline-flex;align-items:center;gap:8px;font-family:var(--font);font-weight:600;font-size:.92rem;padding:13px 26px;border-radius:999px;cursor:pointer;border:1px solid transparent;transition:transform .25s,box-shadow .25s,background .25s;will-change:transform;}
-.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 8px 26px rgba(224,92,42,.36);}
-.btn-primary:hover{box-shadow:0 12px 40px rgba(224,92,42,.55);}
-.btn-ghost{background:rgba(255,255,255,.04);border-color:var(--border2);color:var(--text);}
-.btn-ghost:hover{background:rgba(255,255,255,.09);}
-.btn-sm{padding:9px 18px;font-size:.85rem;}
-.btn-lg{padding:16px 34px;font-size:1rem;}
-.has-js .reveal{opacity:0;transform:translateY(34px);}
-.has-js .reveal.in{opacity:1;transform:none;transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1);}
-.eyebrow{display:inline-block;font-size:.75rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent2);background:var(--accent-soft);padding:6px 14px;border-radius:999px;margin-bottom:18px;}
-.sec-title{font-size:clamp(1.9rem,4vw,3rem);font-weight:800;letter-spacing:-.02em;line-height:1.08;}
-.sec-title .g{background:linear-gradient(120deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;}
-.sec-sub{color:var(--text3);font-size:1.05rem;margin-top:14px;max-width:560px;font-family:var(--font2);}
-.center{text-align:center;}
-.center .sec-sub{margin-left:auto;margin-right:auto;}
-section{position:relative;z-index:3;}
-.hero{padding:150px 0 70px;position:relative;z-index:3;}
-.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;}
-.h-badge{display:inline-flex;align-items:center;gap:8px;font-size:.82rem;color:var(--text2);background:rgba(255,255,255,.05);border:1px solid var(--border);padding:7px 15px;border-radius:999px;margin-bottom:24px;}
-.h-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);}
-h1.hero-title{font-size:clamp(2.6rem,5.4vw,4.4rem);font-weight:900;line-height:1.02;letter-spacing:-.03em;}
-.hero-title .g{background:linear-gradient(120deg,var(--accent) 10%,var(--accent2) 60%,#ffb98a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;background-size:200% auto;animation:shimmer 5s linear infinite;}
-@keyframes shimmer{to{background-position:200% center;}}
-.hero-sub{color:var(--text2);font-size:1.12rem;margin-top:22px;max-width:500px;font-family:var(--font2);}
-.hero-cta{display:flex;gap:14px;margin-top:34px;flex-wrap:wrap;}
-.hero-trust{margin-top:40px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;color:var(--text3);font-size:.82rem;}
-.avatars{display:flex;}
-.avatars span{width:34px;height:34px;border-radius:50%;border:2px solid var(--bg);margin-left:-10px;display:grid;place-items:center;font-size:.8rem;font-weight:700;color:#fff;}
-.mockup{position:relative;}
-.mock-card{background:linear-gradient(160deg,var(--raised),var(--surface));border:1px solid var(--border2);border-radius:20px;padding:20px;box-shadow:0 30px 80px rgba(0,0,0,.5);}
-.mock-head{display:flex;align-items:center;gap:8px;margin-bottom:16px;}
-.mock-head i{width:11px;height:11px;border-radius:50%;background:#ff5f57;display:inline-block;}
-.mock-head i:nth-child(2){background:#febc2e;}.mock-head i:nth-child(3){background:#28c840;}
-.mock-head span{margin-left:auto;font-size:.72rem;color:var(--text3);}
-.mock-row{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--border);margin-bottom:10px;}
-.mock-thumb{width:52px;height:38px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));flex-shrink:0;position:relative;overflow:hidden;}
-.mock-thumb.p{background:linear-gradient(135deg,#6C3FB5,#8B7BD8);}
-.mock-thumb.b{background:linear-gradient(135deg,#2A6FE0,#4F9BE8);}
-.mock-thumb::after{content:'▶';position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:.7rem;}
-.mock-info{flex:1;min-width:0;}
-.mock-info b{font-size:.82rem;font-weight:600;display:block;}
-.mock-info small{font-size:.7rem;color:var(--text3);}
-.mock-badge{font-size:.66rem;font-weight:700;padding:4px 9px;border-radius:999px;white-space:nowrap;}
-.mb-live{background:rgba(70,161,113,.16);color:#7fd3a4;}
-.mb-new{background:var(--accent-soft);color:var(--accent2);}
-.float-chip{position:absolute;background:var(--raised);border:1px solid var(--border2);border-radius:14px;padding:12px 16px;box-shadow:0 16px 40px rgba(0,0,0,.5);display:flex;align-items:center;gap:10px;}
-.float-chip .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:1rem;}
-.fc-1{top:-26px;right:-18px;animation:bob 4s ease-in-out infinite;}
-.fc-2{bottom:-24px;left:-26px;animation:bob 5s ease-in-out infinite .6s;}
-@keyframes bob{50%{transform:translateY(-14px);}}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;padding:38px;border-radius:20px;background:linear-gradient(160deg,var(--surface),var(--bg2));border:1px solid var(--border);margin-top:20px;}
-.stat .num{font-size:2.6rem;font-weight:800;letter-spacing:-.02em;background:linear-gradient(120deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;}
-.stat .lbl{color:var(--text3);font-size:.86rem;margin-top:4px;font-family:var(--font2);}
-.block{padding:100px 0;}
-.block-head{margin-bottom:56px;}
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;position:relative;}
-.step{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:34px 28px;position:relative;transition:border-color .3s,transform .3s;}
-.step:hover{border-color:rgba(224,92,42,.4);transform:translateY(-6px);}
-.step .n{width:46px;height:46px;border-radius:14px;background:var(--accent-soft);color:var(--accent2);display:grid;place-items:center;font-weight:800;font-size:1.2rem;margin-bottom:20px;border:1px solid rgba(224,92,42,.3);}
-.step h3{font-size:1.2rem;font-weight:700;margin-bottom:8px;}
-.step p{color:var(--text3);font-size:.92rem;font-family:var(--font2);}
-.step-icon{position:absolute;top:30px;right:26px;opacity:.16;font-size:1.4rem;}
-.step-line{position:absolute;top:52px;left:16%;right:16%;height:2px;z-index:-1;}
-.step-line svg{width:100%;height:2px;overflow:visible;}
-.step-line path{stroke:var(--accent);stroke-width:2;stroke-dasharray:8 8;fill:none;opacity:.5;}
-.features{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;}
-.feat{background:linear-gradient(160deg,var(--surface),var(--bg2));border:1px solid var(--border);border-radius:var(--radius);padding:30px;transition:transform .2s,border-color .3s,box-shadow .3s;transform-style:preserve-3d;will-change:transform;position:relative;overflow:hidden;}
-.feat::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s;background:radial-gradient(400px circle at var(--mx,50%) var(--my,50%),rgba(224,92,42,.12),transparent 45%);}
-.feat:hover::before{opacity:1;}
-.feat:hover{border-color:rgba(224,92,42,.35);box-shadow:0 20px 50px rgba(0,0,0,.4);}
-.feat .ic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;margin-bottom:18px;font-size:1.4rem;}
-.ic-o{background:var(--accent-soft);}.ic-g{background:rgba(70,161,113,.14);}.ic-p{background:rgba(139,123,216,.14);}.ic-b{background:rgba(79,155,232,.14);}
-.feat h3{font-size:1.14rem;font-weight:700;margin-bottom:8px;}
-.feat p{color:var(--text3);font-size:.9rem;font-family:var(--font2);}
-.cats{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;}
-.cat{padding:12px 22px;border-radius:999px;border:1px solid var(--border);background:var(--surface);font-size:.9rem;font-weight:500;color:var(--text2);transition:all .25s;cursor:default;}
-.cat:hover{border-color:var(--accent);color:var(--text);background:var(--accent-soft);transform:translateY(-3px);}
-.split{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
-.split-card{border-radius:var(--radius);padding:40px;border:1px solid var(--border);position:relative;overflow:hidden;}
-.sc-creator{background:linear-gradient(160deg,rgba(224,92,42,.12),var(--surface));}
-.sc-editor{background:linear-gradient(160deg,rgba(139,123,216,.12),var(--surface));}
-.split-card h3{font-size:1.5rem;font-weight:800;margin-bottom:14px;}
-.split-card ul{list-style:none;margin:20px 0 26px;}
-.split-card li{display:flex;gap:10px;align-items:flex-start;padding:9px 0;color:var(--text2);font-size:.95rem;font-family:var(--font2);}
-.split-card li .ck{color:var(--accent2);font-weight:800;}
-.sc-editor li .ck{color:var(--purple);}
-.tests{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;}
-.test{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;}
-.test .stars{color:var(--accent2);letter-spacing:2px;margin-bottom:14px;}
-.test p{color:var(--text2);font-size:.95rem;font-family:var(--font2);margin-bottom:20px;line-height:1.6;}
-.test .who{display:flex;align-items:center;gap:12px;}
-.test .who .av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#fff;}
-.test .who b{font-size:.9rem;display:block;}
-.test .who small{font-size:.76rem;color:var(--text3);}
-.faq{max-width:760px;margin:0 auto;}
-.qa{border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:12px;background:var(--surface);overflow:hidden;}
-.qa button{width:100%;text-align:left;padding:20px 24px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:1rem;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px;}
-.qa .ans{max-height:0;overflow:hidden;transition:max-height .35s ease;color:var(--text3);font-family:var(--font2);font-size:.92rem;}
-.qa .ans p{padding:0 24px 20px;}
-.qa.open .ans{max-height:200px;}
-.qa .plus{transition:transform .3s;color:var(--accent2);font-size:1.3rem;flex-shrink:0;}
-.qa.open .plus{transform:rotate(45deg);}
-.cta-band{border-radius:26px;padding:64px 48px;text-align:center;position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(224,92,42,.9),rgba(255,138,80,.85));}
-.cta-band h2{font-size:clamp(2rem,4vw,2.8rem);font-weight:800;color:#fff;letter-spacing:-.02em;}
-.cta-band p{color:rgba(255,255,255,.9);margin:14px auto 30px;max-width:480px;font-family:var(--font2);}
-.cta-band .btn-primary{background:#fff;color:var(--accent);box-shadow:0 10px 30px rgba(0,0,0,.25);}
-.cta-band .glow{position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.25);filter:blur(80px);top:-100px;right:-60px;}
-footer{border-top:1px solid var(--border);padding:56px 0 40px;position:relative;z-index:3;}
-.foot-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:32px;margin-bottom:40px;}
-.foot-grid h4{font-size:.82rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:16px;}
-.foot-grid a{display:block;color:var(--text2);font-size:.9rem;padding:6px 0;transition:color .2s;font-family:var(--font2);}
-.foot-grid a:hover{color:var(--accent2);}
-.foot-p{color:var(--text3);font-size:.9rem;font-family:var(--font2);margin-top:14px;max-width:280px;}
-.socials{display:flex;gap:10px;margin-top:18px;}
-.socials a{width:40px;height:40px;border-radius:50%;border:1px solid var(--border);display:grid;place-items:center;color:var(--text2);transition:all .25s;}
-.socials a:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-3px);}
-.socials svg{width:18px;height:18px;}
-.foot-bottom{border-top:1px solid var(--border);padding-top:24px;display:flex;justify-content:space-between;color:var(--text3);font-size:.84rem;flex-wrap:wrap;gap:12px;font-family:var(--font2);}
-@media(max-width:900px){
-  .hero-grid{grid-template-columns:1fr;gap:44px;}
-  .stats{grid-template-columns:repeat(2,1fr);}
-  .steps,.features,.tests{grid-template-columns:1fr;}
-  .split{grid-template-columns:1fr;}
-  .foot-grid{grid-template-columns:1fr 1fr;}
-  .nav-links{display:none;}
-  .step-line{display:none;}
-  .wrap{padding:0 20px;}
-}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}.has-js .reveal{opacity:1!important;transform:none!important;}}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Aalynex — Connect Creators with Pro Video Editors</title>
+<meta name="description" content="Post your video project, find expert freelance editors, chat in real-time and get polished content delivered fast."/>
+<link rel="canonical" href="https://aalynex.com/"/>
+
+<!-- Open Graph -->
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="Aalynex"/>
+<meta property="og:title" content="Aalynex — Connect Creators with Pro Editors"/>
+<meta property="og:description" content="Post your video project, find expert freelance editors, chat in real-time and get polished content delivered fast."/>
+<meta property="og:url" content="https://aalynex.com/"/>
+<meta property="og:image" content="https://aalynex.com/aalynex-logo.png"/>
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Aalynex — Connect Creators with Pro Editors"/>
+<meta name="twitter:description" content="Post your video project, find expert freelance editors, chat in real-time and get polished content delivered fast."/>
+<meta name="twitter:image" content="https://aalynex.com/aalynex-logo.png"/>
+
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="css/styles.css">
+<script>(function(){try{if(localStorage.getItem('aalynex-theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
 </head>
 <body>
-<div class="progress" id="progress"></div>
-<div class="cursor-glow" id="cglow"></div>
-<div class="aurora"><span class="a1"></span><span class="a2"></span><span class="a3"></span></div>
-<div class="grain"></div>
-<nav id="nav"><div class="wrap nav-in">
-  <div class="brand"><span class="mark">A</span><b>Aalyne<span class="o">x</span></b></div>
-  <div class="nav-links"><a href="#how">How it works</a><a href="#why">Why Aalynex</a><a href="#creators">For You</a><a href="#faq">FAQ</a></div>
-  <div class="nav-cta"><a class="btn btn-ghost btn-sm" href="#">Login</a><a class="btn btn-primary btn-sm magnetic" href="#">Get Started</a></div>
-</div></nav>
-<section class="hero"><div class="wrap">
-  <div class="hero-grid">
-    <div>
-      <div class="h-badge reveal"><span class="dot"></span> Trusted by creators &amp; editors worldwide</div>
-      <h1 class="hero-title"><span class="reveal">Connect <span class="g">Creators</span></span><br><span class="reveal">with <span class="g">Pro Editors</span></span></h1>
-      <p class="hero-sub reveal">Post your video project, find expert freelance editors, chat in real-time and get polished content — delivered fast.</p>
-      <div class="hero-cta reveal"><a class="btn btn-primary btn-lg magnetic" href="#">I'm a Creator →</a><a class="btn btn-ghost btn-lg magnetic" href="#">I'm a Freelancer →</a></div>
-      <div class="hero-trust reveal"><div class="avatars"><span style="background:linear-gradient(135deg,#E05C2A,#FF8A50)">R</span><span style="background:linear-gradient(135deg,#6C3FB5,#8B7BD8)">M</span><span style="background:linear-gradient(135deg,#2A6FE0,#4F9BE8)">A</span><span style="background:linear-gradient(135deg,#46A171,#7fd3a4)">S</span></div><span>Join <b style="color:var(--text)">2,400+</b> creators shipping faster</span></div>
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<div id="screen-landing" class="screen active">
+  <nav>
+    <div class="logo">
+      <img src="aalynex-logo.png" class="logo-img" draggable="false" alt="Logo">
+    <span class="logo-text" draggable="false" id="logoDrag">Aal<span class="logo-accent">y</span>nex</span>
+  </div>
+  <div class="nav-center">
+    <a href="#" class="nav-link" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">Home</a>
+    <a href="#how-it-works" class="nav-link">
+  <span class="desk-only">How It Works</span>
+  <span class="mob-only">Works</span>
+</a>
+    <a href="#why-aalynex" class="nav-link">Why Aalynex</a>
+    <a href="#" class="nav-link" onclick="openTeamModal();return false;">Team</a>
     </div>
-    <div class="mockup reveal">
-      <div class="mock-card">
-        <div class="mock-head"><i></i><i></i><i></i><span>My Projects · Aalynex</span></div>
-        <div class="mock-row"><div class="mock-thumb"></div><div class="mock-info"><b>YouTube Long-form Edit</b><small>₹8,000 · Due in 2 days</small></div><span class="mock-badge mb-live">In Progress</span></div>
-        <div class="mock-row"><div class="mock-thumb p"></div><div class="mock-info"><b>Podcast Highlight Reel</b><small>₹3,500 · Delivered</small></div><span class="mock-badge mb-live">Completed</span></div>
-        <div class="mock-row"><div class="mock-thumb b"></div><div class="mock-info"><b>Instagram Reel Pack</b><small>₹2,200 · New request</small></div><span class="mock-badge mb-new">New</span></div>
+    <div class="nav-right">
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme"><svg class="ic-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v3M12 19.5v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1.5 12h3M19.5 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></button>
+  <button class="btn btn-ghost btn-sm" onclick="goAuth('login')">Login</button>
+      <button class="btn btn-primary btn-sm" onclick="goAuth('signup')">Get Started</button>
+    </div>
+  </nav>
+  <div class="page-content"></div>
+  <div class="hero">
+    <div class="hero-glow"></div>
+    <h1>Connect <em>Creators</em><br/>with Pro Editors</h1>
+    <p class="hero-sub">Post Your Video Project, Find Expert Freelance Editors, Chat In Real-Time And Get Polished Content — Delivered Fast.</p>
+    <div class="hero-cta">
+      <button class="btn btn-primary hero-btn" onclick="goAuth('signup','creator')">I'm a Creator &rarr;</button>
+      <button class="btn btn-ghost hero-btn" style="border-color:rgba(124,58,237,.3);color:var(--freelancer);" onclick="goAuth('signup','freelancer')">I'm a Freelancer &rarr;</button>
+    </div>
+    <div class="role-cards">
+      <div class="role-card cc" onclick="goAuth('signup','creator')">
+        <div class="role-icon-wrap">
+          <svg viewBox="0 0 24 24"><rect x="2" y="3" width="15" height="13" rx="2"/><polygon points="22 7 17 10 22 13 22 7"/></svg>
+        </div>
+        <h3>For Creators</h3>
+        <p>Post Projects, Choose Editors, Receive Polished Videos.</p>
       </div>
-      <div class="float-chip fc-1"><div class="ic" style="background:var(--accent-soft)">⚡</div><div><b style="font-size:.8rem">Fast delivery</b><br><small style="color:var(--text3);font-size:.7rem">24h turnaround</small></div></div>
-      <div class="float-chip fc-2"><div class="ic" style="background:rgba(70,161,113,.16)">🔒</div><div><b style="font-size:.8rem">Escrow secured</b><br><small style="color:var(--text3);font-size:.7rem">Pay on approval</small></div></div>
+      <div class="role-card fc" onclick="goAuth('signup','freelancer')">
+        <div class="role-icon-wrap">
+          <svg viewBox="0 0 24 24"><path d="M6 6a3 3 0 1 0 0.01 0M6 18a3 3 0 1 0 0.01 0M20 4L8.5 15.5M14 14l6 6M8.5 8.5L12 12"/></svg>
+        </div>
+        <h3>For Editors</h3>
+        <p>Browse Projects, Set Your Budget, Grow Your Portfolio.</p>
+      </div>
     </div>
   </div>
-  <div class="stats reveal">
-    <div class="stat"><div class="num" data-count="12000" data-suffix="+">0</div><div class="lbl">Videos delivered</div></div>
-    <div class="stat"><div class="num" data-count="850" data-suffix="+">0</div><div class="lbl">Verified editors</div></div>
-    <div class="stat"><div class="num" data-count="24" data-suffix="h">0</div><div class="lbl">Avg. turnaround</div></div>
-    <div class="stat"><div class="num" data-count="4.9" data-decimal="1" data-suffix="★">0</div><div class="lbl">Average rating</div></div>
+
+  <section class="how-section">
+    <div class="section-heading">How <em>Aalynex</em> Works</div>
+    <p class="section-sub">Three Simple Steps To Get Your Video Edited By A Pro</p>
+    <div class="how-cards">
+      <div class="how-card">
+        <span class="how-card-num">1</span>
+        <div class="how-card-icon-wrap">
+          <svg viewBox="0 0 24 24"><rect x="2" y="3" width="15" height="13" rx="2"/><polygon points="22 7 17 10 22 13 22 7"/></svg>
+        </div>
+        <div class="how-card-step">Post Project</div>
+        <div class="how-card-sub">Upload Your Video Brief, Set Your Budget And Describe What You Need</div>
+      </div>
+      <div class="how-card">
+        <span class="how-card-num">2</span>
+        <div class="how-card-icon-wrap">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div class="how-card-step">Choose Editor</div>
+        <div class="how-card-sub">Browse Verified Freelancers, Compare Ratings And Select The Best One</div>
+      </div>
+      <div class="how-card">
+        <span class="how-card-num">3</span>
+        <div class="how-card-icon-wrap">
+          <svg viewBox="0 0 24 24"><polyline points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </div>
+        <div class="how-card-step">Get Final Video</div>
+        <div class="how-card-sub">Review, Approve And Receive Your Polished Edited Content — Delivered Fast</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="why-section">
+    <div class="why-inner">
+      <div class="section-heading" style="text-align:center;margin-bottom:8px;">Why <em>Aalynex</em>?</div>
+      <p class="section-sub" style="text-align:center;">Built For Creators Who Move Fast And Editors Who Deliver Quality</p>
+      <div class="why-cards">
+        <div class="why-card">
+          <div class="why-icon-wrap ic-1">
+            <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <div class="why-card-text">
+            <div class="why-card-title">Fast Turnaround</div>
+            <div class="why-card-desc">Get Videos Edited Within Your Desired Timeframe — From 24 Hours To Custom Deadlines</div>
+          </div>
+        </div>
+        <div class="why-card">
+          <div class="why-icon-wrap ic-2">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="why-card-text">
+            <div class="why-card-title">Direct Editor Chat</div>
+            <div class="why-card-desc">Chat Directly With Your Editor In Real-Time — No Middlemen, No Delays, Total Clarity</div>
+          </div>
+        </div>
+        <div class="why-card">
+          <div class="why-icon-wrap ic-3">
+            <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          </div>
+          <div class="why-card-text">
+            <div class="why-card-title">100% Secure Payments</div>
+            <div class="why-card-desc">Funds Are Held In Escrow And Released Only When You Approve The Final Edit</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <section class="follow-section">
+      <!-- MEET THE TEAM CTA -->
+       <div style="text-align:center;margin:32px 0 40px;">
+      <button class="btn btn-ghost" id="meet-team-btn" onclick="openTeamModal()" style="font-size:.92rem;padding:12px 28px;border-radius:999px;border-color:rgba(0,0,0,.12);">
+        Meet the Team Behind Aalynex &rarr;
+      </button>
+    </div>
+
+      <div class="follow-title">Follow Us On</div>
+      <div class="social-links">
+        <a href="https://youtube.com/@aalynex?si=tRi-d7DgXJtOYoTX" target="_blank" class="social-btn">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M10 15l5-3-5-3v6z"/><path fill="currentColor" d="M21.5 6.3s-.2-1.5-.9-2.2c-.8-.9-1.8-.9-2.2-.9C15.8 3 12 3 12 3s-3.8 0-6.4.2c-.4 0-1.4 0-2.2.9-.7.7-.9 2.2-.9 2.2S2.3 8 2.3 9.7v1.6c0 1.7.2 3.4.2 3.4s.2 1.5.9 2.2c.8.9 1.9.8 2.4.9C7.2 18 12 18 12 18s3.8 0 6.4-.2c.4 0 1.4 0 2.2-.9.7-.7.9-2.2.9-2.2s.2-1.7.2-3.4V9.7c0-1.7-.2-3.4-.2-3.4z"/></svg>
+          YouTube
+        </a>
+        <a href="https://www.instagram.com/aalynex?igsh=MTlzZDV2NTBmaGxkdA==" target="_blank" class="social-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+          Instagram
+        </a>
+        <a href="https://facebook.com" target="_blank" class="social-btn">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M13 22v-9h3l1-4h-4V7c0-1 0-2 2-2h2V2h-3c-3 0-4 2-4 5v2H7v4h3v9h3z"/></svg>
+          Facebook
+        </a>
+        <a href="https://twitter.com" target="_blank" class="social-btn">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M22 5.8c-.7.3-1.4.5-2.2.6.8-.5 1.3-1.2 1.6-2-.8.5-1.6.8-2.5 1-1.5-1.6-4.2-1.4-5.6.3-1 1.2-1.2 2.8-.6 4.2-3.3-.2-6.3-1.8-8.3-4.4-1.1 1.8-.5 4.1 1.3 5.2-.6 0-1.2-.2-1.7-.5 0 2 1.4 3.8 3.4 4.2-.5.1-1 .2-1.5.1.4 1.6 2 2.8 3.7 2.8-1.5 1.2-3.3 1.8-5.2 1.8H2c1.9 1.2 4.1 1.9 6.3 1.9 7.5 0 11.6-6.3 11.6-11.7v-.5c.8-.5 1.5-1.2 2.1-2z"/></svg>
+          Twitter
+        </a>
+      </div>
+      <div class="follow-bottom">Trusted By Creators And Editors</div>
+    </section>
+  </section>
+</div>
+
+<div id="team-modal-overlay" onclick="closeTeamModal(event)">
+    <div id="team-modal-box" role="dialog" aria-modal="true" aria-labelledby="team-modal-heading">
+      <button onclick="closeTeamModal()" id="team-modal-close" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div id="team-modal-header">
+        <div id="team-modal-title" id="team-modal-heading">Our Amazing Team</div>
+        <div id="team-modal-sub">Built by developers who understand creators and editors.</div>
+        <p id="team-modal-desc">Aalynex was born from a real problem — creators struggling to find reliable, skilled editors, and editors struggling to find consistent work. Our small but passionate team set out to build a platform that bridges that gap with transparency, speed, and trust at its core. Every feature you see was thoughtfully crafted with both sides of the workflow in mind.</p>
+      </div>
+<div id="team-modal-cards">
+  <div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--text-3);font-size:.85rem;">
+    Click to load team...
   </div>
-</div></section>
-<section class="block" id="how"><div class="wrap">
-  <div class="block-head center reveal"><span class="eyebrow">Simple process</span><h2 class="sec-title">How <span class="g">Aalynex</span> works</h2><p class="sec-sub">Three simple steps to get your video edited by a pro.</p></div>
-  <div class="steps">
-    <div class="step-line"><svg preserveAspectRatio="none"><path d="M0 1 L2000 1"/></svg></div>
-    <div class="step reveal"><div class="n">1</div><h3>Post your project</h3><p>Upload your brief, set your budget and describe exactly what you need.</p><div class="step-icon">📝</div></div>
-    <div class="step reveal"><div class="n">2</div><h3>Choose your editor</h3><p>Browse verified freelancers, compare ratings and pick the best fit.</p><div class="step-icon">👥</div></div>
-    <div class="step reveal"><div class="n">3</div><h3>Get your final video</h3><p>Review, approve and receive polished content — delivered fast.</p><div class="step-icon">🎬</div></div>
+</div>
+    </div>
   </div>
-</div></section>
-<section class="block" id="why"><div class="wrap">
-  <div class="block-head center reveal"><span class="eyebrow">Built different</span><h2 class="sec-title">Why <span class="g">Aalynex</span>?</h2><p class="sec-sub">Built for creators who move fast and editors who deliver quality.</p></div>
-  <div class="features">
-    <div class="feat tilt reveal"><div class="ic ic-o">⚡</div><h3>Fast turnaround</h3><p>Get videos edited within your timeframe — from 24 hours to custom deadlines.</p></div>
-    <div class="feat tilt reveal"><div class="ic ic-b">💬</div><h3>Direct editor chat</h3><p>Chat with your editor in real-time — no middlemen, no delays, total clarity.</p></div>
-    <div class="feat tilt reveal"><div class="ic ic-g">🔒</div><h3>100% secure payments</h3><p>Funds held in escrow and released only when you approve the final edit.</p></div>
-    <div class="feat tilt reveal"><div class="ic ic-p">✓</div><h3>Verified editors</h3><p>Every freelancer is vetted with real portfolios, ratings and past work.</p></div>
-    <div class="feat tilt reveal"><div class="ic ic-o">🔁</div><h3>Free revisions</h3><p>Request revisions until the edit matches your vision — no surprises.</p></div>
-    <div class="feat tilt reveal"><div class="ic ic-b">⭐</div><h3>Ratings &amp; reviews</h3><p>Transparent reviews help you pick confidently and reward great work.</p></div>
+
+</div>
+<div id="screen-public-profile" class="screen">
+  <nav>
+    <div class="logo">
+      <img src="aalynex-logo.png" class="logo-img" draggable="false" alt="Logo"/>
+      <span class="logo-text" draggable="false">Aalynex</span>
+    </div>
+    <div class="nav-right">
+      <button class="btn btn-primary btn-sm" onclick="showScreen('screen-landing')">Join Aalynex →</button>
+    </div>
+  </nav>
+  <div class="auth-wrap" style="align-items:flex-start;padding-top:40px;">
+    <div id="pp-content" style="width:100%;max-width:680px;">
+      <div style="text-align:center;padding:60px 20px;color:var(--text-3);">Loading profile…</div>
+    </div>
   </div>
-</div></section>
-<section class="block" style="padding-top:0"><div class="wrap center">
-  <div class="block-head center reveal" style="margin-bottom:34px"><span class="eyebrow">Any format</span><h2 class="sec-title">Editors for <span class="g">every kind</span> of content</h2></div>
-  <div class="cats reveal"><span class="cat">YouTube Long-form</span><span class="cat">YouTube Shorts</span><span class="cat">Instagram Reels</span><span class="cat">TikTok</span><span class="cat">Podcast Edits</span><span class="cat">Brand Videos</span><span class="cat">Documentaries</span><span class="cat">LinkedIn Video</span><span class="cat">Course Content</span><span class="cat">Gaming Montages</span><span class="cat">Wedding Films</span></div>
-</div></section>
-<section class="block" id="creators" style="padding-top:0"><div class="wrap">
-  <div class="split">
-    <div class="split-card sc-creator reveal"><span class="eyebrow">For Creators</span><h3>Ship more content, stress less</h3><ul><li><span class="ck">✓</span> Post a project in under 2 minutes</li><li><span class="ck">✓</span> Handpick editors from verified portfolios</li><li><span class="ck">✓</span> Pay safely — released only on approval</li><li><span class="ck">✓</span> Real-time chat &amp; revisions in one place</li></ul><a class="btn btn-primary magnetic" href="#">Start posting →</a></div>
-    <div class="split-card sc-editor reveal"><span class="eyebrow" style="color:var(--purple);background:rgba(139,123,216,.14)">For Editors</span><h3>Find steady work you love</h3><ul><li><span class="ck">✓</span> Browse projects that match your skills</li><li><span class="ck">✓</span> Set your own budget &amp; deadlines</li><li><span class="ck">✓</span> Build a public portfolio that wins clients</li><li><span class="ck">✓</span> Get paid on time, every time</li></ul><a class="btn btn-ghost magnetic" href="#">Join as editor →</a></div>
+</div>
+
+<div id="screen-auth" class="screen">
+  <nav>
+    <div class="logo">
+      <img src="aalynex-logo.png" class="logo-img" draggable="false" alt="Logo">
+      <span class="logo-text" draggable="false" id="logoDrag">Aalynex</span>
+    </div>
+    <div class="nav-right">
+  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme"><svg class="ic-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v3M12 19.5v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1.5 12h3M19.5 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></button>
+  <button class="btn btn-ghost btn-sm" onclick="showScreen('screen-landing')">&larr; Back</button>
+    </div>
+  </nav>
+  <div class="auth-wrap">
+    <div class="auth-box fade-in">
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="tab-login" onclick="switchTab('login')">Login</div>
+        <div class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Sign Up</div>
+      </div>
+      <div id="form-login">
+        <div class="role-select">
+          <div class="role-btn ac" id="lr-c" onclick="setLRole('creator')">Creator</div>
+          <div class="role-btn" id="lr-f" onclick="setLRole('freelancer')">Freelancer</div>
+        </div>
+        <div class="fg"><label>Email Address</label><input type="email" id="login-email" placeholder="you@example.com"/></div>
+        <div class="fg"><label>Password</label><input type="password" id="login-pw" placeholder="Enter your password"/></div>
+<div style="text-align:right;margin:-6px 0 2px;"><a onclick="doForgotPassword()" style="cursor:pointer;font-size:.8rem;color:var(--text-3);">Forgot password?</a></div>
+<div id="login-err" class="alert alert-e" style="display:none;"></div>
+        <button class="btn btn-primary full-btn" style="margin-top:10px;" id="login-btn" onclick="doLogin()">Login &rarr;</button>
+        <div class="divider">or</div>
+        <div class="form-footer">Don't have an account? <a onclick="switchTab('signup')">Sign up free</a></div>
+      </div>
+      <div id="form-signup" style="display:none;">
+        <div class="role-select">
+          <div class="role-btn ac" id="sr-c" onclick="setSRole('creator')">Creator</div>
+          <div class="role-btn" id="sr-f" onclick="setSRole('freelancer')">Freelancer</div>
+        </div>
+        <div class="form-row">
+          <div class="fg"><label>Full Name</label><input type="text" id="su-name" placeholder="Your full name"/></div>
+          <div class="fg"><label>Phone</label><input type="tel" id="su-phone" placeholder="+91 9XXXXXXX"/></div>
+        </div>
+        <div class="fg">
+          <label>Email Address</label>
+          <input type="email" id="su-email" placeholder="you@example.com"/>
+          <div class="otp-note">Verification email will be sent</div>
+        </div>
+        <div class="fg"><label>Password</label><input type="password" id="su-pw" placeholder="Min 6 characters"/></div>
+        <div class="fg"><label>Profession</label>
+          <select id="su-profession">
+            <option>Content Creator</option><option>Influencer</option>
+            <option>YouTuber</option><option>Brand</option>
+            <option>Video Editor</option><option>Motion Designer</option>
+          </select>
+        </div>
+        <div id="su-creator-extra">
+          <div class="fg"><label>Primary Platform</label>
+            <select id="su-platform"><option>YouTube</option><option>Instagram</option><option>TikTok</option><option>LinkedIn</option><option>Multiple</option></select>
+          </div>
+        </div>
+        <div id="signup-err" class="alert alert-e" style="display:none;margin-top:8px;"></div>
+        <button class="btn btn-primary full-btn" style="margin-top:14px;" id="signup-btn" onclick="doSignup()">Create Account &rarr;</button>
+        <div class="form-footer" style="margin-top:12px;">Already have an account? <a onclick="switchTab('login')">Log in</a></div>
+      </div>
+    </div>
   </div>
-</div></section>
-<section class="block" style="padding-top:0"><div class="wrap">
-  <div class="block-head center reveal"><span class="eyebrow">Loved by users</span><h2 class="sec-title">Creators &amp; editors <span class="g">trust us</span></h2></div>
-  <div class="tests">
-    <div class="test reveal"><div class="stars">★★★★★</div><p>“Found an editor in an hour and had my video back the next morning. The escrow made me feel totally safe.”</p><div class="who"><span class="av" style="background:linear-gradient(135deg,#E05C2A,#FF8A50)">R</span><div><b>Rahul Mehta</b><small>YouTuber · 480K subs</small></div></div></div>
-    <div class="test reveal"><div class="stars">★★★★★</div><p>“As an editor, Aalynex gives me a steady stream of clients and the public profile actually lands me work.”</p><div class="who"><span class="av" style="background:linear-gradient(135deg,#6C3FB5,#8B7BD8)">M</span><div><b>Megha Rao</b><small>Video Editor · Pro</small></div></div></div>
-    <div class="test reveal"><div class="stars">★★★★★</div><p>“The real-time chat means no more endless email threads. Communication is instant and clear.”</p><div class="who"><span class="av" style="background:linear-gradient(135deg,#2A6FE0,#4F9BE8)">A</span><div><b>Arjun Singh</b><small>Brand · Marketing lead</small></div></div></div>
+</div>
+
+<div id="screen-creator" class="screen">
+  <nav>
+    <div class="logo">
+      <img src="aalynex-logo.png" class="logo-img" draggable="false" alt="Logo">
+      <span class="logo-text" draggable="false" id="logoDrag">Aalynex</span>
+    </div>
+    <div class="nav-right">
+  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme"><svg class="ic-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v3M12 19.5v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1.5 12h3M19.5 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></button>
+  <span class="nav-greeting" id="c-nav-greeting">Hi, <strong id="c-nav-name"></strong></span>
+      <div class="hamburger" id="c-hamburger" onclick="toggleSidebar('creator')">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </nav>
+  <div class="dash-layout">
+    <div class="sidebar-overlay" id="c-overlay" onclick="closeSidebar('creator')"></div>
+    <aside class="sidebar" id="c-sidebar">
+      <div class="nav-item" data-page="browse" onclick="cPage('browse',this)">
+  <span class="ni"><span class="ni-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span></span> Browse Freelancers
+</div>
+      <div class="sb-profile">
+        <div class="sb-avatar sb-av-creator" id="c-sb-avatar"></div>
+        <div><div class="sb-name" id="c-sb-name"></div><div class="sb-role" id="c-sb-role"></div></div>
+      </div>
+      <div class="sb-section">Account</div>
+      <div class="nav-item" data-page="profile" onclick="cPage('profile',this)">
+        <span class="ni"><span class="ni-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span></span> Profile
+      </div>
+      <div class="sb-section">Main</div>
+      <div class="nav-item active" data-page="home" onclick="cPage('home',this)">
+        <span class="ni"><span class="ni-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span></span> Dashboard
+      </div>
+      <div class="nav-item" data-page="new" onclick="cPage('new',this)">
+        <span class="ni"><span class="ni-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span></span> Post / Manage
+      </div>
+      <div class="nav-item" data-page="projects" onclick="cPage('projects',this)">
+        <span class="ni"><span class="ni-icon"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span></span> My Projects
+      </div>
+      <div class="sb-section">Work</div>
+      <div class="nav-item" data-page="chat" onclick="cPage('chat',this)">
+        <span class="ni"><span class="ni-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span></span> Messages <span class="nav-badge" id="c-msg-badge" style="display:none;">1</span>
+      </div>
+      <div class="nav-item" data-page="payment" onclick="cPage('payment',this)">
+        <span class="ni"><span class="ni-icon"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span></span> Payments
+      </div>
+      <div class="nav-item" data-page="rate" onclick="cPage('rate',this)">
+        <span class="ni"><span class="ni-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span></span> Rate Freelancer
+      </div>
+      <div class="nav-item" data-page="aisuggest" onclick="cPage('aisuggest',this)">
+  <span class="ni"><span class="ni-icon"><svg viewBox="0 0 24 24"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.4L12 15l-1.9-4.6L5.5 9l4.6-1.4L12 3z"/></svg></span></span> AI Suggestions <span class="nav-badge" style="background:var(--accent-soft);color:var(--accent);">PRO</span>
+</div>
+      <div class="sb-logout" onclick="logout()">
+        <span class="ni-icon"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span> Logout
+      </div>
+      
+    </aside>
+    <main class="dash-main" id="c-main"></main>
   </div>
-</div></section>
-<section class="block" id="faq" style="padding-top:0"><div class="wrap">
-  <div class="block-head center reveal"><span class="eyebrow">Questions</span><h2 class="sec-title">Frequently asked</h2></div>
-  <div class="faq">
-    <div class="qa reveal"><button>How do payments work?<span class="plus">+</span></button><div class="ans"><p>Your payment is held securely in escrow when you start a project and only released to the editor once you approve the final video.</p></div></div>
-    <div class="qa reveal"><button>How fast will I get my video?<span class="plus">+</span></button><div class="ans"><p>Turnaround depends on the project, but many editors deliver within 24–48 hours. You set the deadline when posting.</p></div></div>
-    <div class="qa reveal"><button>Are the editors verified?<span class="plus">+</span></button><div class="ans"><p>Yes. Every editor has a public portfolio, ratings and reviews from past projects so you can choose with confidence.</p></div></div>
-    <div class="qa reveal"><button>What if I'm not happy with the edit?<span class="plus">+</span></button><div class="ans"><p>You can request revisions until it matches your vision. Payment is only released once you're satisfied and approve.</p></div></div>
+  <nav class="bottom-nav" id="c-bottom-nav">
+    <div class="bn-item" onclick="cPageMobile('browse',this)">
+  <span class="bn-icon bn-icon-svg"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>Browse
+</div>
+    <div class="bn-item active" onclick="cPageMobile('home',this)">
+      <span class="bn-icon bn-icon-svg"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>Home
+    </div>
+    <div class="bn-item" onclick="cPageMobile('new',this)">
+      <span class="bn-icon bn-icon-svg"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span>Post
+    </div>
+    <div class="bn-item" onclick="cPageMobile('projects',this)">
+      <span class="bn-icon bn-icon-svg"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>Projects
+    </div>
+    <div class="bn-item" onclick="cPageMobile('chat',this)">
+      <span class="bn-icon bn-icon-svg"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>Chat
+    </div>
+    <div class="bn-item" onclick="cPageMobile('payment',this)">
+      <span class="bn-icon bn-icon-svg"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>Pay
+    </div>
+  </nav>
+</div>
+
+<div id="screen-freelancer" class="screen">
+  <nav>
+    <div class="logo">
+      <img src="aalynex-logo.png" class="logo-img" draggable="false" alt="Logo">
+      <span class="logo-text" draggable="false" id="logoDrag">Aalynex</span>
+    </div>
+    <div class="nav-right">
+  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme"><svg class="ic-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v3M12 19.5v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1.5 12h3M19.5 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></button>
+  <span class="nav-greeting nav-greeting-f" id="f-nav-greeting">Hi, <strong id="f-nav-name"></strong></span>
+      <div class="hamburger" id="f-hamburger" onclick="toggleSidebar('freelancer')">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </nav>
+  <div class="dash-layout">
+    <div class="sidebar-overlay" id="f-overlay" onclick="closeSidebar('freelancer')"></div>
+    <aside class="sidebar" id="f-sidebar">
+      <div class="sb-profile">
+        <div class="sb-avatar sb-av-freelancer" id="f-sb-avatar"></div>
+        <div><div class="sb-name" id="f-sb-name"></div><div class="sb-role" id="f-sb-role"></div></div>
+      </div>
+      <div class="sb-section">Account</div>
+      <div class="nav-item" data-page="profile" onclick="fPage('profile',this)">
+        <span class="ni"><span class="ni-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span></span> My Profile
+      </div>
+      <div class="nav-item" data-page="earnings" onclick="fPage('earnings',this)">
+        <span class="ni"><span class="ni-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span></span> Earnings
+      </div>
+      <div class="sb-section">Main</div>
+      <div class="nav-item active" data-page="home" onclick="fPage('home',this)">
+        <span class="ni"><span class="ni-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span></span> Dashboard
+      </div>
+      <div class="nav-item" data-page="browse" onclick="fPage('browse',this)">
+        <span class="ni"><span class="ni-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span></span> Browse Projects
+      </div>
+      <div class="nav-item" data-page="ongoing" onclick="fPage('ongoing',this)">
+        <span class="ni"><span class="ni-icon"><svg viewBox="0 0 24 24"><polyline points="13 2 13 9 20 9"/><path d="M21 3L13 11"/><path d="M20 20H4a2 2 0 0 1-2-2V6"/></svg></span></span> Ongoing
+      </div>
+      <div class="sb-section">Work</div>
+      <div class="nav-item" data-page="chat" onclick="fPage('chat',this)">
+        <span class="ni"><span class="ni-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span></span> Messages <span class="nav-badge" id="f-msg-badge" style="display:none;">1</span>
+      </div>
+      <div class="nav-item" data-page="negotiate" onclick="fPage('negotiate',this)">
+        <span class="ni"><span class="ni-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></span> Negotiate
+      </div>
+      <div class="nav-item" data-page="upload" onclick="fPage('upload',this)">
+        <span class="ni"><span class="ni-icon"><svg viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg></span></span> Upload Work
+      </div>
+      <div class="sb-logout" onclick="logout()">
+        <span class="ni-icon"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span> Logout
+      </div>
+    </aside>
+    <main class="dash-main" id="f-main"></main>
   </div>
-</div></section>
-<section class="block" style="padding-top:0"><div class="wrap">
-  <div class="cta-band reveal"><div class="glow"></div><h2>Ready to create something great?</h2><p>Join thousands of creators and editors building better video, faster — on Aalynex.</p><a class="btn btn-primary btn-lg magnetic" href="#">Get started free →</a></div>
-</div></section>
-<footer><div class="wrap">
-  <div class="foot-grid">
-    <div><div class="brand"><span class="mark">A</span><b>Aalyne<span class="o">x</span></b></div><p class="foot-p">The platform that connects creators with pro freelance video editors — fast, secure and transparent.</p><div class="socials"><a href="#" aria-label="YouTube"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M10 15l5-3-5-3v6z"/><path fill="currentColor" d="M21.5 6.3s-.2-1.5-.9-2.2c-.8-.9-1.8-.9-2.2-.9C15.8 3 12 3 12 3s-3.8 0-6.4.2c-.4 0-1.4 0-2.2.9-.7.7-.9 2.2-.9 2.2S2.3 8 2.3 9.7v1.6c0 1.7.2 3.4.2 3.4s.2 1.5.9 2.2c.8.9 1.9.8 2.4.9C7.2 18 12 18 12 18s3.8 0 6.4-.2c.4 0 1.4 0 2.2-.9.7-.7.9-2.2.9-2.2s.2-1.7.2-3.4V9.7c0-1.7-.2-3.4-.2-3.4z"/></svg></a><a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></a><a href="#" aria-label="X"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M18 2h3l-7.5 8.6L22.5 22H16l-5-6.6L5.2 22H2l8-9.2L1.5 2H8l4.6 6.1L18 2z"/></svg></a></div></div>
-    <div><h4>Product</h4><a href="#how">How it works</a><a href="#why">Why Aalynex</a><a href="#faq">FAQ</a><a href="#">Pricing</a></div>
-    <div><h4>Company</h4><a href="#">About</a><a href="#">Careers</a><a href="#">Blog</a><a href="#">Contact</a></div>
-    <div><h4>Legal</h4><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Refunds</a></div>
+  <nav class="bottom-nav" id="f-bottom-nav">
+    <div class="bn-item active" onclick="fPageMobile('home',this)">
+      <span class="bn-icon bn-icon-svg"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>Home
+    </div>
+    <div class="bn-item" onclick="fPageMobile('browse',this)">
+      <span class="bn-icon bn-icon-svg"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>Browse
+    </div>
+    <div class="bn-item" onclick="fPageMobile('ongoing',this)">
+      <span class="bn-icon bn-icon-svg"><svg viewBox="0 0 24 24"><polyline points="13 2 13 9 20 9"/><path d="M21 3L13 11"/><path d="M20 20H4a2 2 0 0 1-2-2V6"/></svg></span>Ongoing
+    </div>
+    <div class="bn-item" onclick="fPageMobile('chat',this)">
+      <span class="bn-icon bn-icon-svg"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>Chat
+    </div>
+    <div class="bn-item" onclick="fPageMobile('upload',this)">
+      <span class="bn-icon bn-icon-svg"><svg viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg></span>Upload
+    </div>
+    <div class="bn-item" onclick="fPageMobile('profile',this)">
+      <span class="bn-icon bn-icon-svg"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>Profile
+    </div>
+  </nav>
+</div>
+
+<div class="modal-bg" id="modal-bg">
+  <div class="modal" id="modal-inner">
+    <h3 id="modal-title">Confirm</h3>
+    <div id="modal-body" style="font-size:.85rem;color:var(--text-2);"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="modal-confirm">Confirm</button>
+    </div>
   </div>
-  <div class="foot-bottom"><span>© 2026 Aalynex. All rights reserved.</span><span>Made for creators &amp; editors 🎬</span></div>
-</div></footer>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
-<script>
-document.documentElement.classList.add('has-js');
-const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const nav=document.getElementById('nav'),prog=document.getElementById('progress');
-function onScroll(){const y=window.scrollY;nav.classList.toggle('scrolled',y>30);const h=document.documentElement.scrollHeight-innerHeight;prog.style.width=(h>0?(y/h)*100:0)+'%';}
-window.addEventListener('scroll',onScroll,{passive:true});onScroll();
-const cg=document.getElementById('cglow');
-if(!('ontouchstart' in window)){window.addEventListener('mousemove',e=>{cg.style.opacity=1;cg.style.left=e.clientX+'px';cg.style.top=e.clientY+'px';});}
-document.querySelectorAll('.qa button').forEach(b=>b.addEventListener('click',()=>{const qa=b.closest('.qa');const open=qa.classList.contains('open');document.querySelectorAll('.qa').forEach(x=>x.classList.remove('open'));if(!open)qa.classList.add('open');}));
-if(!reduce)document.querySelectorAll('.magnetic').forEach(el=>{el.addEventListener('mousemove',e=>{const r=el.getBoundingClientRect();el.style.transform=`translate(${(e.clientX-r.left-r.width/2)*.25}px,${(e.clientY-r.top-r.height/2)*.35}px)`;});el.addEventListener('mouseleave',()=>el.style.transform='');});
-if(!reduce)document.querySelectorAll('.tilt').forEach(el=>{el.addEventListener('mousemove',e=>{const r=el.getBoundingClientRect();const px=(e.clientX-r.left)/r.width,py=(e.clientY-r.top)/r.height;el.style.setProperty('--mx',px*100+'%');el.style.setProperty('--my',py*100+'%');el.style.transform=`perspective(800px) rotateY(${(px-.5)*10}deg) rotateX(${(.5-py)*10}deg) translateY(-4px)`;});el.addEventListener('mouseleave',()=>el.style.transform='');});
-function countUp(el){const target=parseFloat(el.dataset.count),dec=+(el.dataset.decimal||0),suf=el.dataset.suffix||'';const start=performance.now(),dur=1600;function tick(t){const p=Math.min((t-start)/dur,1);const e=1-Math.pow(1-p,3);let v=target*e;el.textContent=(dec?v.toFixed(dec):Math.floor(v).toLocaleString('en-IN'))+suf;if(p<1)requestAnimationFrame(tick);}requestAnimationFrame(tick);}
-function showAll(){document.querySelectorAll('.reveal').forEach(el=>el.classList.add('in'));document.querySelectorAll('.num[data-count]').forEach(countUp);}
-if(window.gsap&&window.ScrollTrigger&&!reduce){gsap.registerPlugin(ScrollTrigger);if(window.Lenis){const lenis=new Lenis({lerp:.1});function raf(t){lenis.raf(t);requestAnimationFrame(raf);}requestAnimationFrame(raf);lenis.on('scroll',ScrollTrigger.update);}document.querySelectorAll('.reveal').forEach((el)=>{ScrollTrigger.create({trigger:el,start:'top 88%',onEnter:()=>el.classList.add('in')});});document.querySelectorAll('.num[data-count]').forEach(el=>{ScrollTrigger.create({trigger:el,start:'top 90%',once:true,onEnter:()=>countUp(el)});});const path=document.querySelector('.step-line path');if(path){const len=path.getTotalLength();path.style.strokeDasharray=len;path.style.strokeDashoffset=len;ScrollTrigger.create({trigger:'.steps',start:'top 75%',onEnter:()=>{path.style.transition='stroke-dashoffset 1.4s ease';path.style.strokeDashoffset=0;}});}}else{showAll();}
-setTimeout(()=>{if(!document.querySelector('.reveal.in'))showAll();},1200);
-</script>
+</div>
+
+<!-- ===== Libraries (must load first) ===== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<!-- ===== App modules (order matters) ===== -->
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/creator.js"></script>
+<script src="js/aiSuggest.js"></script>
+<script src="js/freelancer.js"></script>
+<script src="js/chat.js"></script>
+<script src="js/projects.js"></script>
+<script src="js/payments.js"></script>
+<script src="js/publicProfile.js"></script>
+<script src="js/team.js"></script>
+<script src="js/main.js"></script>
+
 </body>
 </html>
